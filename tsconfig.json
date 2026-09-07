@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "noEmitOnError": true,
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "rewriteRelativeImportExtensions": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+
+    /* Linting */
+    "strict": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["database/**/*.ts", "server/**/*.ts", "server/**/*.tsx", "worker/**/*.ts"],
+  "exclude": [".attic/**/*.ts"]
+}
