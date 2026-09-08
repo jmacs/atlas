@@ -12,6 +12,9 @@ export function Page({children, title}: PageProps) {
     <Document title={title}>
       <header>
         <a href="/">Atlas</a>
+        <form method="post" action="/logout">
+          <button type="submit">Sign out</button>
+        </form>
       </header>
       <main>
         <h1>{title}</h1>

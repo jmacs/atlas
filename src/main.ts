@@ -1,5 +1,6 @@
 import {serve} from '@hono/node-server';
 
+import {CONFIG} from '#config';
 import {createApp} from './app.ts';
 import {logger} from './logger.ts';
 
@@ -13,6 +14,10 @@ const server = serve(
   },
   (info) => {
     logger.info(`Listening on http://0.0.0.0:${info.port}`);
+    logger.info(`Node env: ${process.env.NODE_ENV}`);
+    if (CONFIG.auth.bypass) {
+      logger.warn('Authentication bypass is enabled');
+    }
   },
 );
 

@@ -46,6 +46,6 @@
     "lint": "oxlint",
     "prebuild": "npm run clean && npm run typecheck",
     "typecheck": "tsc --noEmit",
-    "start": "node dist/main.js"
+    "start": "NODE_ENV=production node dist/main.js"
   }
 }
