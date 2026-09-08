@@ -1,6 +1,6 @@
 # Atlas
 
-A web app for managing and automating everyday tasks on my Unraid server.
+A web app for managing and automating tasks on my Unraid server.
 
 ## Local setup
 
@@ -37,5 +37,5 @@ Create `settings.json` in the appdata directory. With the local configuration ab
 
 Atlas reads this file at startup. Restart Atlas after changing the credentials.
 
-Authentication can be disabled locally by setting `ATLAS_AUTH_BYPASS=true`. 
+Authentication can be disabled locally by setting `ATLAS_AUTH_BYPASS=true`.
 The bypass only works when `NODE_ENV=development`; Atlas refuses to start with it enabled in any other environment.
