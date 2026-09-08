@@ -1,0 +1,6 @@
+.attic/
+.idea/
+.local/
+dist/
+node_modules/
+*.json

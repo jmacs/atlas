@@ -20,6 +20,13 @@
     "verbatimModuleSyntax": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["database/**/*.ts", "server/**/*.ts", "server/**/*.tsx", "worker/**/*.ts"],
+  "include": [
+    "actions/**/*.ts",
+    "config.ts",
+    "database/**/*.ts",
+    "drizzle.config.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
   "exclude": [".attic/**/*.ts"]
 }

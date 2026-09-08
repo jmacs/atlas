@@ -1,9 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "noCheck": true,
     "noEmit": false,
-    "outDir": "./dist/server",
-    "rootDir": "./server"
+    "noResolve": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
-  "include": ["server/**/*.ts", "server/**/*.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

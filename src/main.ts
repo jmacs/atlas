@@ -1,6 +1,7 @@
 import {serve} from '@hono/node-server';
 
 import {createApp} from './app.ts';
+import {logger} from './logger.ts';
 
 const app = createApp();
 
@@ -11,7 +12,7 @@ const server = serve(
     port: 3000,
   },
   (info) => {
-    console.log(`Listening on http://0.0.0.0:${info.port}`);
+    logger.info(`Listening on http://0.0.0.0:${info.port}`);
   },
 );
 
