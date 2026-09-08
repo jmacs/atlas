@@ -7,4 +7,6 @@ node_modules/
 .plans/
 .attic/
 .local/
+e2e/experiments/
 dist/
+public/styles/app.css

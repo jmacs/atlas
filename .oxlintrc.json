@@ -1,6 +1,9 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [".idea/**", ".local/**", "dist/**", "docs/**"],
   "rules": {
-    "curly": "error"
+    "curly": "error",
+    "no-nested-ternary": "error",
+    "import/no-default-export": "error"
   }
 }

@@ -8,6 +8,7 @@ RUN npm ci
 COPY config.ts ./config.ts
 COPY database ./database
 COPY src ./src
+COPY public ./public
 COPY tsconfig.json tsconfig.build.json ./
 COPY actions ./actions
 
@@ -34,7 +35,7 @@ RUN npm ci --omit=dev \
 COPY --from=build /app/dist ./dist
 COPY config.ts ./config.ts
 COPY database ./database
-COPY public ./public
+COPY --from=build /app/public ./public
 COPY actions ./actions
 
 USER node

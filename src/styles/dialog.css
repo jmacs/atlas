@@ -1,0 +1,42 @@
+@layer components {
+  .dialog {
+    @apply m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-card border-0 bg-surface-raised p-0 text-foreground shadow-2xl;
+  }
+
+  .dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dialog > .dialog__panel {
+    flex: 1;
+  }
+
+  .dialog__panel {
+    @apply rounded-card border border-border;
+  }
+
+  .dialog::backdrop {
+    background: rgb(0 0 0 / 50%);
+  }
+}
+
+/* This layer follows the generated utilities, so the modal's small-screen
+ * presentation is an invariant even when callers provide desktop size utilities. */
+@layer utilities {
+  @media (width < 40rem) {
+    .dialog:modal {
+      width: 100%;
+      max-width: none;
+      height: 100dvh;
+      max-height: none;
+      margin: 0;
+      border-radius: 0;
+    }
+
+    .dialog:modal > .dialog__panel {
+      border: 0;
+      border-radius: 0;
+    }
+  }
+}

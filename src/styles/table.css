@@ -1,0 +1,30 @@
+@layer components {
+  .table-scroll {
+    @apply overflow-x-auto;
+  }
+
+  .table {
+    @apply type-body-small w-full border-collapse text-left;
+  }
+
+  .table th,
+  .table td {
+    @apply border-b border-border px-4 py-3 text-left text-foreground;
+  }
+
+  .table thead th {
+    @apply type-control whitespace-nowrap bg-surface-raised text-muted;
+  }
+
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .table tbody tr {
+    @apply transition-colors;
+  }
+
+  .table tbody tr:hover {
+    @apply bg-surface-raised;
+  }
+}

@@ -1,6 +1,6 @@
 import {raw} from 'hono/html';
 import type {Child} from 'hono/jsx';
-import {generateImportMap} from '../importmap.ts';
+import {importMapJson} from '../core/importmap.ts';
 
 type DocumentProps = {
   children: Child;
@@ -16,10 +16,12 @@ export function Document({children, title}: DocumentProps) {
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <title>{title}</title>
-          <script type="importmap">{raw(JSON.stringify(generateImportMap()))}</script>
+          <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
+          <link rel="stylesheet" href="/styles/app.css" />
+          <script type="importmap">{raw(importMapJson)}</script>
           <script type="module" src="/scripts/app.js" />
         </head>
-        <body>{children}</body>
+        <body class="min-h-dvh bg-background text-foreground antialiased">{children}</body>
       </html>
     </>
   );
