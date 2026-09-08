@@ -39,3 +39,5 @@ Atlas reads this file at startup. Restart Atlas after changing the credentials.
 
 Authentication can be disabled locally by setting `ATLAS_AUTH_BYPASS=true`.
 The bypass only works when `NODE_ENV=development`; Atlas refuses to start with it enabled in any other environment.
+
+Session cookies automatically use the `Secure` attribute for direct HTTPS requests or when a reverse proxy sends `X-Forwarded-Proto: https`. Direct HTTP requests receive an HTTP-compatible session cookie.

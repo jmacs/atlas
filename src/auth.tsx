@@ -4,20 +4,30 @@ import {Hono, type MiddlewareHandler} from 'hono';
 import {deleteCookie, getCookie, setCookie} from 'hono/cookie';
 
 import {CONFIG} from '#config';
+import {logger} from './logger.ts';
 import {LoginPage} from './pages/login/LoginPage.tsx';
 
 const SESSION_LIFETIME_SECONDS = 12 * 60 * 60;
-const SESSION_COOKIE =
-  process.env.NODE_ENV === 'production' ? '__Host-atlas_session' : 'atlas_session';
+const SESSION_COOKIE = 'atlas_session';
 const sessions = new Map<string, number>();
 
-const cookieOptions = {
-  httpOnly: true,
-  maxAge: SESSION_LIFETIME_SECONDS,
-  path: '/',
-  sameSite: 'Strict',
-  secure: process.env.NODE_ENV === 'production',
-} as const;
+function cookieOptions(secure: boolean) {
+  return {
+    httpOnly: true,
+    maxAge: SESSION_LIFETIME_SECONDS,
+    path: '/',
+    sameSite: 'Strict',
+    secure,
+  } as const;
+}
+
+function isSecureRequest(requestUrl: string, forwardedProtocol: string | undefined): boolean {
+  const proxyProtocol = forwardedProtocol?.split(',', 1)[0]?.trim().toLowerCase();
+  if (proxyProtocol !== undefined && proxyProtocol !== '') {
+    return proxyProtocol === 'https';
+  }
+  return new URL(requestUrl).protocol === 'https:';
+}
 
 function valuesMatch(actual: string, expected: string): boolean {
   const actualDigest = createHash('sha256').update(actual).digest();
@@ -130,11 +140,14 @@ export function registerAuthRoutes(app: Hono) {
     const next = safeDestination(typeof body.next === 'string' ? body.next : undefined);
 
     if (!credentialsMatch(username, password)) {
+      logger.warn('Login rejected');
       await new Promise((resolve) => setTimeout(resolve, 750));
       return c.html(<LoginPage error="Invalid username or password" next={next} />, 401);
     }
 
-    setCookie(c, SESSION_COOKIE, createSession(), cookieOptions);
+    const secureCookie = isSecureRequest(c.req.url, c.req.header('X-Forwarded-Proto'));
+    setCookie(c, SESSION_COOKIE, createSession(), cookieOptions(secureCookie));
+    logger.info({secureCookie}, 'Login succeeded');
     return c.redirect(next, 303);
   });
 
@@ -143,7 +156,9 @@ export function registerAuthRoutes(app: Hono) {
     if (sessionId) {
       sessions.delete(sessionId);
     }
-    deleteCookie(c, SESSION_COOKIE, {path: '/', secure: cookieOptions.secure});
+    const secureCookie = isSecureRequest(c.req.url, c.req.header('X-Forwarded-Proto'));
+    deleteCookie(c, SESSION_COOKIE, {path: '/', secure: secureCookie});
+    logger.info('Logged out');
     return c.redirect('/login', 303);
   });
 }
