@@ -8,19 +8,19 @@ export type ToastVariant = 'success' | 'info' | 'warning' | 'error';
 
 const variants = {
   success: {
-    className: 'border-green-400/30 bg-surface-raised text-green-200',
+    className: 'border-success/30 bg-surface-raised text-success',
     icon: CircleCheck,
   },
   info: {
-    className: 'border-blue-400/30 bg-surface-raised text-blue-200',
+    className: 'border-info/30 bg-surface-raised text-info',
     icon: Info,
   },
   warning: {
-    className: 'border-amber-400/30 bg-surface-raised text-amber-200',
+    className: 'border-warning/30 bg-surface-raised text-warning',
     icon: TriangleAlert,
   },
   error: {
-    className: 'border-red-400/30 bg-surface-raised text-red-200',
+    className: 'border-danger/30 bg-surface-raised text-danger',
     icon: CircleX,
   },
 } satisfies Record<ToastVariant, {className: string; icon: typeof CircleCheck}>;
@@ -76,10 +76,11 @@ export function Toast({
 }
 
 type ToastRegionProps = Omit<JSX.IntrinsicElements['div'], 'children' | 'class' | 'id'> & {
+  children?: Child;
   class?: string;
 };
 
-export function ToastRegion({class: className, ...props}: ToastRegionProps) {
+export function ToastRegion({children, class: className, ...props}: ToastRegionProps) {
   return (
     <div
       id="toast-region"
@@ -89,6 +90,8 @@ export function ToastRegion({class: className, ...props}: ToastRegionProps) {
       )}
       aria-label="Notifications"
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 }

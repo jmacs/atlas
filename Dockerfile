@@ -5,12 +5,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY config.ts ./config.ts
-COPY database ./database
-COPY src ./src
+COPY lib ./lib
+COPY fixtures ./fixtures
 COPY public ./public
+COPY src ./src
 COPY tsconfig.json tsconfig.build.json ./
-COPY actions ./actions
 
 RUN npm run build
 
@@ -27,16 +26,20 @@ ENV ATLAS_APPDATA_DIR=/appdata
 ENV ATLAS_MOVIES_DIR=/library/movies
 ENV ATLAS_BOOKS_DIR=/library/books
 
+# Required Jellyfin connection settings. Supply both at runtime, for example
+# with `docker run -e JELLYFIN_SERVER -e JELLYFIN_API_KEY ...`.
+ENV JELLYFIN_SERVER=
+ENV JELLYFIN_API_KEY=
+
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev \
   && mkdir -p /appdata /library/movies /library/books \
   && chown node:node /appdata
 
 COPY --from=build /app/dist ./dist
-COPY config.ts ./config.ts
-COPY database ./database
 COPY --from=build /app/public ./public
-COPY actions ./actions
+COPY lib ./lib
+COPY fixtures ./fixtures
 
 USER node
 EXPOSE 3000

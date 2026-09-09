@@ -4,6 +4,12 @@ Atlas renders JSX on the server with Hono. Components produce HTML for a request
 re-render in the browser, or attach client-side event handlers. Put request handling, data loading, mutations, and
 permissions in Hono routes and services. Use native HTML, HTMX, or focused browser scripts for browser interaction.
 
+## Date formats
+
+Persist all dates in UTC and display them in the user's local time zone.
+
+When rendering dates, use the standard formats defined in `lib/utils/dates.ts` rather than defining new formats inline.
+
 ## Components
 
 ### Design props around meaning
@@ -144,7 +150,7 @@ component.
 Organize files by feature or responsibility.
 
 - Prefer a flat directory structure
-- Introduce subdirectories only for cohesive modules
+- Introduce subdirectories only for cohesive webConfig
 - Treat non-exported files as module-private
 - Follow the repository's feature boundaries: apps own feature pages and routes, while `src/ui/` holds genuinely
   shared presentation
@@ -208,27 +214,6 @@ export function Card({isSelected, title}: CardProps) {
 For wrappers around an HTML element, derive the attribute type from `JSX.IntrinsicElements` and explicitly define the
 component's additions and omissions.
 
-### Comment public props with JSDoc
-
-Document the props of publicly consumed components when their meaning or constraints are not obvious. Do not document
-internal helper components.
-
-```tsx
-type RevisionCardProps = {
-  /** Revision to display. */
-  revision: Revision;
-  /** Marks the card as the active selection. Styling only; does not affect focus. */
-  isSelected?: boolean;
-};
-```
-
-Do not write comments that describe a work item, change history, or code that the next line already makes plain.
-
-### Wire field naming
-
-- Preserve API wire fields as `snake_case` when applicable
-- Use `camelCase` for application methods and variables
-
 ## Styling
 
 ### Class names
@@ -237,17 +222,48 @@ Use `clsx` when combining conditional classes. Do not add a dependency merely to
 
 ### Styling system and themes
 
-Use Tailwind for component styling. Avoid hard-coded bespoke colors and font sizes in JSX; define semantic colors and
-typography in `src/styles/theme.css` and reference them throughout the application.
+Before building UI, inspect the relevant components in `src/ui/`, their working examples in
+`src/apps/design-system/`, and the tokens in `src/styles/theme.css`. Reuse shared components when their meaning and
+behavior fit. Follow the component promotion rules above for new presentation. When adding or changing shared UI,
+update the relevant gallery examples and verify affected behavior with Playwright.
 
-Keep global styles in `src/styles` and separate them by responsibility:
+Use semantic theme colors and `type-*` typography. Do not introduce raw color palettes, literal colors, or bespoke
+font sizes in JSX or component CSS. Add missing reusable visual roles to `theme.css` and document them in the design
+system gallery. Feedback uses `success`, `info`, `warning`, and `danger`; errors share `danger` with destructive
+actions and invalid fields. Use `shadow` for shadow colors and `overlay` for backdrops, with opacity modifiers as
+needed. Ordinary Tailwind spacing, sizing, layout, radius, and shadow-size utilities are allowed. Inline emphasis
+and numeric formatting utilities may supplement a semantic type style.
+
+`AppLayout` owns the single toast region for each app page. App routes can return `<Toast oob>` in HTMX responses;
+pages using this layout must not add another region. Toasts communicate routine form success/error states.
+
+### Tailwind and custom CSS
+
+Use Tailwind utilities in JSX by default, including responsive, hover, focus, and semantic state variants. Repeated
+markup and styling usually belong in a component rather than a new global class.
+
+Add custom CSS when it makes a cohesive styling concern clearer, such as keyframes, shared table element rules,
+or dialog sizing invariants. A long class list alone does not require a stylesheet. Custom CSS must use the same
+theme tokens through `var(...)` or `@apply`; it must not create a parallel palette or typography scale.
+
+Keep styles in `src/styles`. `src/styles/index.css` is the single browser entry point and builds to
+`public/styles/app.css`.
+
+Keep the global app stylesheet focused with small, top-level support files:
 
 - `base.css` for document-level styles and global overrides
 - `theme.css` for design tokens, typography, and theme definitions
 - a focused shared stylesheet when a substantial global concern needs one
 - `index.css` as the global stylesheet entry point
 
-Prefer component-local styles for anything that does not need to be global.
+Use Tailwind utilities in JSX and focused shared stylesheets in `src/styles/` when native CSS is clearer. Do
+not add feature stylesheet entry points.
+
+`index.css` is the only stylesheet entry point that imports `tailwindcss`. It scans `src` and any browser scripts named
+with `@source`, so utilities used while constructing DOM nodes imperatively are included in the output.
+
+Tailwind utility classes used in feature JSX are generated by `index.css`. Add an `@source` only for browser scripts
+that construct DOM with Tailwind class names; do not create feature-specific Tailwind source lists.
 
 ### Style states explicitly
 
@@ -295,7 +311,7 @@ apparent. Prefer existing semantic mechanisms before adding live regions, and do
 Structure the DOM so tests can target elements by user-visible meaning.
 
 - Prefer roles, accessible names, labels, and visible text
-- Use `data-testid` when no stable semantic selector exists
+- Use `id` or `data-testid` when no stable semantic selector exists
 - Keep test IDs semantic and stable rather than tied to implementation details
 - Never use selectors that depend on DOM order
 

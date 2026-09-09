@@ -8,19 +8,19 @@ export type AlertVariant = 'success' | 'info' | 'warning' | 'error';
 
 const variants = {
   success: {
-    className: 'border-green-400/30 bg-green-400/10 text-green-200',
+    className: 'border-success/30 bg-success/10 text-success',
     icon: CircleCheck,
   },
   info: {
-    className: 'border-blue-400/30 bg-blue-400/10 text-blue-200',
+    className: 'border-info/30 bg-info/10 text-info',
     icon: Info,
   },
   warning: {
-    className: 'border-amber-400/30 bg-amber-400/10 text-amber-200',
+    className: 'border-warning/30 bg-warning/10 text-warning',
     icon: TriangleAlert,
   },
   error: {
-    className: 'border-red-400/30 bg-red-400/10 text-red-200',
+    className: 'border-danger/30 bg-danger/10 text-danger',
     icon: CircleX,
   },
 } satisfies Record<AlertVariant, {className: string; icon: typeof CircleCheck}>;

@@ -1,14 +1,11 @@
 import {Hono} from 'hono';
-
-import type {AtlasApp} from '../../core/host.tsx';
+import type {AtlasApp, AtlasEnv} from '../../system/contracts.ts';
 import {DashboardPage} from './DashboardPage.tsx';
-import {ServerStatus} from './ServerStatus.tsx';
 
-const app = new Hono();
+const app = new Hono<AtlasEnv>();
 
 app.get('/', (c) => c.html(<DashboardPage />));
 app.get('/api/status', (c) => c.json({status: 'ok'}));
-app.get('/partials/server-status', (c) => c.html(<ServerStatus status="ok" />));
 
 export const dashboardApp: AtlasApp = {
   id: 'dashboard',

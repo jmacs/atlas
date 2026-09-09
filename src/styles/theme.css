@@ -32,6 +32,15 @@
   --color-danger: #ff9ba5;
   --color-danger-foreground: #3b101b;
 
+  /* Feedback text, with translucent fills and borders in alerts and toasts.
+   * Errors share danger with destructive actions and invalid form fields. */
+  --color-success: #b9f8cf;
+  --color-info: #bedbff;
+  --color-warning: #fee685;
+
+  --color-shadow: #000;
+  --color-overlay: #000;
+
   --radius-card: 1rem;
 }
 

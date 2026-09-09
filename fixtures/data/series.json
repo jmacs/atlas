@@ -1,0 +1,27 @@
+[
+  {
+    "id": "series-1",
+    "name": "Moon Patrol: The Saturday Serials",
+    "year": 1953,
+    "genres": [
+      "Science Fiction",
+      "Superhero"
+    ]
+  },
+  {
+    "id": "series-2",
+    "name": "Tape Hiss Hauntings",
+    "year": 1987,
+    "genres": [
+      "Horror"
+    ]
+  },
+  {
+    "id": "series-3",
+    "name": "Rewilding Tomorrow",
+    "year": 2024,
+    "genres": [
+      "Documentary"
+    ]
+  }
+]

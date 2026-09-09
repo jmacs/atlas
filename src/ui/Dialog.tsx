@@ -41,6 +41,7 @@ export function DialogPanel({children, class: className, ...props}: DialogSectio
 type DialogHeaderProps = Omit<DialogSectionProps<'header'>, 'title' | 'children'> & {
   title: string;
   message?: string;
+  showClose?: boolean;
   /** ID for the heading, referenced by the dialog's aria-labelledby. */
   titleId?: string;
 };
@@ -49,6 +50,7 @@ export function DialogHeader({
   class: className,
   title,
   message,
+  showClose = true,
   titleId,
   ...props
 }: DialogHeaderProps) {
@@ -66,14 +68,16 @@ export function DialogHeader({
         </h2>
         {message ? <p class="type-body-small mt-1 text-muted">{message}</p> : null}
       </div>
-      <Button
-        data-dialog-close
-        class="size-8 shrink-0 px-0 text-lg leading-none"
-        variant="ghost"
-        aria-label="Close dialog"
-      >
-        <Icon icon={X} size={24} />
-      </Button>
+      {showClose ? (
+        <Button
+          data-dialog-close
+          class="size-8 shrink-0 px-0 text-lg leading-none"
+          variant="ghost"
+          aria-label="Close dialog"
+        >
+          <Icon icon={X} size={24} />
+        </Button>
+      ) : null}
     </header>
   );
 }

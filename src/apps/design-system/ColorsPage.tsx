@@ -5,6 +5,7 @@ import {Card} from '../../ui/Card.tsx';
 import {Button} from '../../ui/Button.tsx';
 import {InputField} from '../../ui/Forms.tsx';
 import {DesignSystemLayout} from './DesignSystemLayout.tsx';
+import {PageHeader} from '../../ui/Page.tsx';
 
 const colorGroups = [
   {
@@ -48,7 +49,7 @@ const colorGroups = [
   {
     title: '02 / Signals',
     description:
-      'Mint marks the primary action. Rose calls attention to destructive actions and errors.',
+      'Mint marks the primary action. Feedback colors distinguish success, information, warnings, and errors.',
     colors: [
       {name: 'Accent', token: 'accent', usage: 'Primary actions and focus', className: 'bg-accent'},
       {
@@ -69,6 +70,43 @@ const colorGroups = [
         usage: 'Text on rose backgrounds',
         className: 'bg-danger-foreground',
       },
+      {
+        name: 'Success',
+        token: 'success',
+        usage: 'Successful actions and positive status',
+        className: 'bg-success',
+      },
+      {
+        name: 'Information',
+        token: 'info',
+        usage: 'Informational feedback',
+        className: 'bg-info',
+      },
+      {
+        name: 'Warning',
+        token: 'warning',
+        usage: 'Conditions that need attention',
+        className: 'bg-warning',
+      },
+    ],
+  },
+  {
+    title: '03 / Depth',
+    description:
+      'Shadows and backdrops use dedicated colors with opacity appropriate to the surface.',
+    colors: [
+      {
+        name: 'Shadow',
+        token: 'shadow',
+        usage: 'Shadow color, combined with shadow size and opacity utilities',
+        className: 'bg-shadow',
+      },
+      {
+        name: 'Overlay',
+        token: 'overlay',
+        usage: 'Dimmed backdrops behind dialogs and navigation',
+        className: 'bg-overlay',
+      },
     ],
   },
 ] as const;
@@ -77,14 +115,13 @@ export function ColorsPage() {
   const groups = colorGroups.map((group) => <ColorGroupCard group={group} />);
 
   return (
-    <DesignSystemLayout
-      activePath="/design-system/colors"
-      title="Color & contrast"
-      description="Deep ink, clear text, and a touch of mint. A calmer workspace with distinct layers and purposeful color."
-    >
+    <DesignSystemLayout activePath="/design-system/colors" title="Color & contrast">
+      <PageHeader
+        title="Color & contrast"
+        description="Deep ink, clear text, and a touch of mint. A calmer workspace with distinct layers and purposeful color."
+      />
       <div class="space-y-8">
         <ThemePreview />
-
         {groups}
       </div>
     </DesignSystemLayout>

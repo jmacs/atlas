@@ -5,34 +5,40 @@ import {Alert} from '../../ui/Alert.tsx';
 import {Badge} from '../../ui/Badge.tsx';
 import {Button} from '../../ui/Button.tsx';
 import {Card} from '../../ui/Card.tsx';
+import {Dialog} from '../../ui/Dialog.tsx';
+import {Typeahead} from '../../ui/Typeahead.tsx';
+import {DescriptionList, DescriptionListItem} from '../../ui/DescriptionList.tsx';
 import {InputField, SelectField, TextAreaField, Toggle} from '../../ui/Forms.tsx';
+import {JsonlLogViewer} from '../../ui/JsonlLogViewer.tsx';
 import {Table, TableBuilder} from '../../ui/Table.tsx';
-import {ToastRegion, type ToastVariant} from '../../ui/Toast.tsx';
+import type {ToastVariant} from '../../ui/Toast.tsx';
 import {DesignSystemLayout} from './DesignSystemLayout.tsx';
+import {PageHeader} from '../../ui/Page.tsx';
+import {dialogExamples} from './dialogExamples.ts';
 
 export function ComponentsPage() {
   return (
     <DesignSystemLayout
-      activePath="/design-system"
+      activePath="/design-system/components"
       title="Component gallery"
-      description="A working inventory of the shared UI building blocks used across Atlas apps."
+      scripts={['/scripts/apps/design-system/components.js']}
     >
-      <ToastRegion />
-      <div class="grid gap-6 lg:grid-cols-2">
+      <PageHeader
+        title="Component gallery"
+        description="A working inventory of the shared UI building blocks used across Atlas apps."
+      />
+      <div class="flex flex-col items-center gap-6 [&>section]:w-full [&>section]:max-w-3xl">
         <AlertExamples />
-
         <ToastExamples />
-
         <ButtonExamples />
-
         <BadgeExamples />
-
         <CardExample />
-
         <AccordionExample />
-
+        <DialogExamples />
         <FormControlExamples />
-
+        <TypeaheadExamples />
+        <DescriptionListExample />
+        <JsonlLogViewerExample />
         <TableExample />
       </div>
     </DesignSystemLayout>
@@ -76,7 +82,7 @@ function AlertExamples() {
       title="Alerts"
       description="Banner messages provide contextual feedback after an action or status change."
     >
-      <div class="grid gap-3 sm:grid-cols-2">
+      <div class="flex flex-col gap-8">
         <Alert variant="success">Your settings were saved successfully.</Alert>
         <Alert variant="info">
           A new Atlas version is available.{' '}
@@ -116,6 +122,7 @@ function ButtonExamples() {
         <Button variant="ghost">Ghost</Button>
         <Button variant="danger">Delete</Button>
         <Button disabled>Disabled</Button>
+        <Button isLoading>Loading</Button>
       </div>
       <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
         <Button size="sm">Small button</Button>
@@ -152,6 +159,40 @@ function AccordionExample() {
           </p>
         </Accordion>
       </div>
+    </Card>
+  );
+}
+
+function DialogExamples() {
+  return (
+    <Card
+      class="lg:col-span-2"
+      title="Dialogs"
+      description="Focused surfaces for decisions or short, self-contained tasks."
+    >
+      <div class="flex flex-wrap gap-3">
+        {dialogExamples.map((example) => (
+          <>
+            <Button
+              hx-get={`/design-system/components/dialogs/example?size=${example.id}`}
+              hx-target={`#dialog-${example.id} > .dialog__panel`}
+              hx-swap="innerHTML"
+              hx-disabled-elt="this"
+            >
+              {example.label}
+            </Button>
+            <Dialog
+              id={`dialog-${example.id}`}
+              class={example.class}
+              aria-labelledby={`dialog-${example.id}-title`}
+            />
+          </>
+        ))}
+      </div>
+      <p class="type-body-small mt-4 text-muted">
+        Compare a compact prompt, a medium panel, and a large workspace. On small screens, all three
+        fill the viewport.
+      </p>
     </Card>
   );
 }
@@ -217,6 +258,46 @@ function FormControlExamples() {
           description="Pause automated work while the server is being updated."
         />
       </form>
+    </Card>
+  );
+}
+
+function DescriptionListExample() {
+  return (
+    <Card
+      title="Description list"
+      description="Labeled metadata with flexible value content and caller-controlled columns."
+    >
+      <DescriptionList class="grid-cols-2">
+        <DescriptionListItem label="Status">
+          <Badge>Ready</Badge>
+        </DescriptionListItem>
+        <DescriptionListItem label="Last updated">Today, 14:32</DescriptionListItem>
+      </DescriptionList>
+    </Card>
+  );
+}
+
+function JsonlLogViewerExample() {
+  return (
+    <Card
+      class="lg:col-span-2"
+      title="JSONL log viewer"
+      description="A presentational shell for readable and raw structured log output."
+    >
+      <JsonlLogViewer
+        id="component-log-viewer"
+        title="Recent output"
+        emptyMessage="Waiting for log output…"
+        warningId="component-log-warning"
+        connectionId="component-log-connection"
+        controls={
+          <label class="type-control-small flex cursor-pointer items-center gap-2 text-muted">
+            <input type="checkbox" class="accent-accent" />
+            Raw JSON
+          </label>
+        }
+      />
     </Card>
   );
 }
@@ -310,4 +391,62 @@ function sortServers(data: Server[], sort: string) {
     }
     return descending ? -result : result;
   });
+}
+
+function TypeaheadExamples() {
+  return (
+    <Card
+      class="lg:col-span-2"
+      title="Typeahead"
+      description="Search Canadian cities. Single selections commit immediately; multiple selections use Apply. Clear the search to review and remove selections."
+    >
+      <div class="flex flex-col items-center gap-6">
+        <Card class="w-full max-w-sm" title="Single city">
+          <Typeahead name="city" label="City" source="/design-system/components/typeahead/cities" />
+        </Card>
+        <Card class="w-full max-w-sm" title="Multiple cities">
+          <form
+            aria-label="City selection"
+            class="space-y-3"
+            method="post"
+            action="/design-system/components/typeahead"
+            hx-post="/design-system/components/typeahead"
+            hx-swap="none"
+            x-data="{selected: [{value: 'halifax-ns', name: 'Halifax, NS'}]}"
+            x-on:typeahead-change="selected = $event.detail.items"
+            x-on:reset="selected = [{value: 'halifax-ns', name: 'Halifax, NS'}]"
+          >
+            <Typeahead
+              name="cities"
+              label="Cities"
+              source="/design-system/components/typeahead/cities"
+              selected={[{value: 'halifax-ns', name: 'Halifax, NS', description: 'Nova Scotia'}]}
+              multiple
+            />
+            <p class="type-caption text-muted" x-text="selected.length + ' committed cities'">
+              1 committed cities
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <Button type="submit">Submit cities</Button>
+              <Button type="reset" variant="secondary">
+                Reset cities
+              </Button>
+            </div>
+          </form>
+        </Card>
+        <Card class="w-full max-w-sm" title="Inside a dialog">
+          <Button
+            class="w-full"
+            variant="secondary"
+            hx-get="/design-system/components/typeahead/dialog"
+            hx-target="#typeahead-parent > .dialog__panel"
+            hx-swap="innerHTML"
+          >
+            Open city dialog
+          </Button>
+          <Dialog id="typeahead-parent" aria-label="City preferences" class="max-w-xl" />
+        </Card>
+      </div>
+    </Card>
+  );
 }

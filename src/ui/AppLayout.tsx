@@ -1,34 +1,56 @@
 import type {Child} from 'hono/jsx';
 import clsx from 'clsx';
+import type {LucideIconData} from '@lucide/icons';
 
-import {Document} from './Document.tsx';
+import {QuickNav} from './QuickNav.tsx';
+
+import {ToastRegion} from './Toast.tsx';
 
 export type AppNavItem = {
   href: string;
   label: string;
+  icon?: LucideIconData;
+  description?: string;
+  hidden?: boolean;
+};
+
+export type AppNavigationItem = AppNavItem & {
+  children?: readonly AppNavItem[];
 };
 
 type AppLayoutProps = {
   activePath: string;
   children: Child;
   appName: string;
-  navigation: readonly AppNavItem[];
-  title: string;
+  appHref: string;
+  navigation: readonly AppNavigationItem[];
+  notifications?: Child;
 };
 
 const navigationId = 'app-navigation';
 
-export function AppLayout({activePath, children, appName, navigation, title}: AppLayoutProps) {
+export function AppLayout({
+  activePath,
+  children,
+  appName,
+  appHref,
+  navigation,
+  notifications,
+}: AppLayoutProps) {
   return (
-    <Document title={`${title} · ${appName}`}>
-      <div class="min-h-dvh bg-background text-foreground">
-        <AppHeader appName={appName} />
+    <div class="min-h-dvh bg-background text-foreground">
+      <AppHeader appName={appName} />
 
-        <main class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">{children}</main>
+      <main class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:pt-8 sm:pb-14 lg:px-8">{children}</main>
 
-        <AppNavigation appName={appName} activePath={activePath} navigation={navigation} />
-      </div>
-    </Document>
+      <AppNavigation
+        appName={appName}
+        appHref={appHref}
+        activePath={activePath}
+        navigation={navigation}
+      />
+      <ToastRegion>{notifications}</ToastRegion>
+    </div>
   );
 }
 
@@ -58,6 +80,7 @@ function AppHeader({appName}: AppHeaderProps) {
         </a>
         <span class="h-4 w-px bg-border" aria-hidden="true" />
         <span class="type-body-small truncate text-muted">{appName}</span>
+        <QuickNav class="ml-auto shrink-0" />
       </div>
     </header>
   );
@@ -66,25 +89,56 @@ function AppHeader({appName}: AppHeaderProps) {
 type AppNavigationProps = {
   appName: string;
   activePath: string;
-  navigation: readonly AppNavItem[];
+  appHref: string;
+  navigation: readonly AppNavigationItem[];
 };
 
-function AppNavigation({appName, activePath, navigation}: AppNavigationProps) {
+type NavigationLinkProps = {
+  item: AppNavItem;
+  activePath: string;
+  isCurrentApp?: boolean;
+};
+
+function NavigationLink({item, activePath, isCurrentApp}: NavigationLinkProps) {
+  const isActive = item.href === activePath;
+  return (
+    <a
+      href={item.href}
+      class={clsx(
+        'type-control block rounded-md px-3 py-2 transition focus-visible:outline-2 focus-visible:outline-accent',
+        isActive
+          ? 'bg-accent/10 text-accent ring-1 ring-inset ring-accent/30'
+          : 'text-muted hover:bg-surface-raised/70 hover:text-foreground',
+        isCurrentApp && !isActive && 'text-foreground',
+      )}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      {item.label}
+    </a>
+  );
+}
+
+function AppNavigation({appName, appHref, activePath, navigation}: AppNavigationProps) {
   const links = navigation.map((item) => {
-    const isActive = item.href === activePath;
+    const isCurrentApp = item.href === appHref;
+    const children = isCurrentApp ? item.children : undefined;
+    const childLinks = children?.map((child) => (
+      <li>
+        <NavigationLink item={child} activePath={activePath} />
+      </li>
+    ));
     return (
-      <a
-        href={item.href}
-        class={clsx(
-          'block rounded-md px-3 py-2 transition',
-          isActive
-            ? 'type-control bg-accent/10 text-accent ring-1 ring-inset ring-accent/30'
-            : 'type-control text-muted hover:bg-surface-raised/70 hover:text-foreground',
-        )}
-        aria-current={isActive ? 'page' : undefined}
-      >
-        {item.label}
-      </a>
+      <li>
+        <NavigationLink item={item} activePath={activePath} isCurrentApp={isCurrentApp} />
+        {childLinks?.length ? (
+          <ul
+            class="my-1 ml-6 space-y-1 border-l border-border pl-2"
+            aria-label={`${item.label} pages`}
+          >
+            {childLinks}
+          </ul>
+        ) : null}
+      </li>
     );
   });
 
@@ -92,7 +146,7 @@ function AppNavigation({appName, activePath, navigation}: AppNavigationProps) {
     <aside
       id={navigationId}
       popover="auto"
-      class="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-72 max-w-[85vw] border-0 bg-transparent p-0 text-foreground backdrop:bg-black/65 backdrop:backdrop-blur-sm"
+      class="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-72 max-w-[85vw] border-0 bg-transparent p-0 text-foreground backdrop:bg-overlay/65 backdrop:backdrop-blur-sm"
       aria-label={`${appName} navigation`}
     >
       <div class="flex h-full flex-col border-r border-border bg-surface shadow-2xl">
@@ -112,17 +166,11 @@ function AppNavigation({appName, activePath, navigation}: AppNavigationProps) {
           </button>
         </header>
 
-        <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label={`${appName} pages`}>
-          {links}
+        <nav class="flex-1 overflow-y-auto p-3" aria-label="Apps">
+          <ul class="space-y-1">{links}</ul>
         </nav>
 
         <footer class="border-t border-border p-3">
-          <a
-            href="/"
-            class="type-control block rounded-md px-3 py-2 text-muted transition hover:bg-surface-raised hover:text-foreground"
-          >
-            All apps
-          </a>
           <form method="post" action="/logout">
             <button
               type="submit"

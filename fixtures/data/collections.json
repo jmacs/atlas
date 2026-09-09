@@ -1,0 +1,233 @@
+[
+  {
+    "id": "genre-science-fiction",
+    "name": "Science Fiction",
+    "serverId": "fixture-server",
+    "genre": "Science Fiction",
+    "movieIds": [
+      "movie-1",
+      "movie-4",
+      "movie-7",
+      "movie-10",
+      "movie-13",
+      "movie-19",
+      "movie-22",
+      "movie-25"
+    ],
+    "seriesIds": [
+      "series-1"
+    ]
+  },
+  {
+    "id": "genre-comedy",
+    "name": "Comedy",
+    "serverId": "fixture-server",
+    "genre": "Comedy",
+    "movieIds": [
+      "movie-1",
+      "movie-5",
+      "movie-14",
+      "movie-16"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "genre-horror",
+    "name": "Horror",
+    "serverId": "fixture-server",
+    "genre": "Horror",
+    "movieIds": [
+      "movie-2",
+      "movie-7",
+      "movie-11",
+      "movie-15",
+      "movie-21",
+      "movie-24",
+      "movie-26"
+    ],
+    "seriesIds": [
+      "series-2"
+    ]
+  },
+  {
+    "id": "genre-fantasy",
+    "name": "Fantasy",
+    "serverId": "fixture-server",
+    "genre": "Fantasy",
+    "movieIds": [
+      "movie-2",
+      "movie-5",
+      "movie-11",
+      "movie-13",
+      "movie-16",
+      "movie-20",
+      "movie-26"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "genre-documentary",
+    "name": "Documentary",
+    "serverId": "fixture-server",
+    "genre": "Documentary",
+    "movieIds": [
+      "movie-3",
+      "movie-8",
+      "movie-12",
+      "movie-18",
+      "movie-23",
+      "movie-25"
+    ],
+    "seriesIds": [
+      "series-3"
+    ]
+  },
+  {
+    "id": "genre-superhero",
+    "name": "Superhero",
+    "serverId": "fixture-server",
+    "genre": "Superhero",
+    "movieIds": [
+      "movie-4",
+      "movie-9",
+      "movie-14",
+      "movie-17",
+      "movie-22",
+      "movie-27"
+    ],
+    "seriesIds": [
+      "series-1"
+    ]
+  },
+  {
+    "id": "genre-action",
+    "name": "Action",
+    "serverId": "fixture-server",
+    "genre": "Action",
+    "movieIds": [
+      "movie-6",
+      "movie-9",
+      "movie-10",
+      "movie-15",
+      "movie-17",
+      "movie-19",
+      "movie-24",
+      "movie-27"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "decade-1940",
+    "name": "1940s",
+    "serverId": "fixture-server",
+    "decade": 1940,
+    "movieIds": [
+      "movie-1",
+      "movie-2",
+      "movie-3"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "decade-1950",
+    "name": "1950s",
+    "serverId": "fixture-server",
+    "decade": 1950,
+    "movieIds": [
+      "movie-4",
+      "movie-5",
+      "movie-6"
+    ],
+    "seriesIds": [
+      "series-1"
+    ]
+  },
+  {
+    "id": "decade-1960",
+    "name": "1960s",
+    "serverId": "fixture-server",
+    "decade": 1960,
+    "movieIds": [
+      "movie-7",
+      "movie-8",
+      "movie-9"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "decade-1970",
+    "name": "1970s",
+    "serverId": "fixture-server",
+    "decade": 1970,
+    "movieIds": [
+      "movie-10",
+      "movie-11",
+      "movie-12"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "decade-1980",
+    "name": "1980s",
+    "serverId": "fixture-server",
+    "decade": 1980,
+    "movieIds": [
+      "movie-13",
+      "movie-14",
+      "movie-15"
+    ],
+    "seriesIds": [
+      "series-2"
+    ]
+  },
+  {
+    "id": "decade-1990",
+    "name": "1990s",
+    "serverId": "fixture-server",
+    "decade": 1990,
+    "movieIds": [
+      "movie-16",
+      "movie-17",
+      "movie-18"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "decade-2000",
+    "name": "2000s",
+    "serverId": "fixture-server",
+    "decade": 2000,
+    "movieIds": [
+      "movie-19",
+      "movie-20",
+      "movie-21"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "decade-2010",
+    "name": "2010s",
+    "serverId": "fixture-server",
+    "decade": 2010,
+    "movieIds": [
+      "movie-22",
+      "movie-23",
+      "movie-24"
+    ],
+    "seriesIds": []
+  },
+  {
+    "id": "decade-2020",
+    "name": "2020s",
+    "serverId": "fixture-server",
+    "decade": 2020,
+    "movieIds": [
+      "movie-25",
+      "movie-26",
+      "movie-27"
+    ],
+    "seriesIds": [
+      "series-3"
+    ]
+  }
+]

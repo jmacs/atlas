@@ -9,7 +9,9 @@
   }
 
   .dialog > .dialog__panel {
-    flex: 1;
+    /* Keep content in the flex basis so intrinsically sized dialogs do not
+     * collapse in WebKit. Explicitly sized dialogs can still grow and shrink. */
+    flex: 1 1 auto;
   }
 
   .dialog__panel {
@@ -17,7 +19,7 @@
   }
 
   .dialog::backdrop {
-    background: rgb(0 0 0 / 50%);
+    @apply bg-overlay/50;
   }
 }
 

@@ -1,0 +1,8 @@
+.attic/
+.idea/
+.local/
+dist/
+node_modules/
+lib/database/migrations/
+*.json
+*.sql

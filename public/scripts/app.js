@@ -1,3 +1,4 @@
+import './components.js';
 import 'htmx.org';
 
 const dialogOpeners = new WeakMap();
@@ -112,6 +113,19 @@ document.addEventListener('htmx:afterSwap', (event) => {
     dialogOpeners.set(dialog, opener);
   }
   dialog.showModal();
+});
+
+document.addEventListener('htmx:beforeSwap', (event) => {
+  const target = event.detail.target;
+  const response = event.detail.xhr;
+  if (
+    target?.matches('.dialog__panel') &&
+    response?.getResponseHeader('X-Atlas-Dialog-Response') === 'true' &&
+    response.status >= 400
+  ) {
+    event.detail.shouldSwap = true;
+    event.detail.isError = false;
+  }
 });
 
 document.addEventListener(

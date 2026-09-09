@@ -1,31 +1,32 @@
 import type {Child} from 'hono/jsx';
 
 import {AppLayout} from '../../ui/AppLayout.tsx';
-import {PageHeader} from '../../ui/Page.tsx';
-import {designSystemNavigation} from './navigation.ts';
+import {Document} from '../../ui/Document.tsx';
+import {navigation} from '../navigation.ts';
 
 type DesignSystemLayoutProps = {
   activePath: string;
   children: Child;
-  description: string;
+  scripts?: string[];
   title: string;
 };
 
 export function DesignSystemLayout({
   activePath,
   children,
-  description,
+  scripts,
   title,
 }: DesignSystemLayoutProps) {
   return (
-    <AppLayout
-      activePath={activePath}
-      appName="Design system"
-      navigation={designSystemNavigation}
-      title={title}
-    >
-      <PageHeader title={title} description={description} />
-      {children}
-    </AppLayout>
+    <Document title={`${title} · Design system`} scripts={scripts}>
+      <AppLayout
+        activePath={activePath}
+        appName="Design system"
+        appHref="/design-system"
+        navigation={navigation}
+      >
+        {children}
+      </AppLayout>
+    </Document>
   );
 }

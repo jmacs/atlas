@@ -6,19 +6,22 @@
   "license": "ISC",
   "type": "module",
   "imports": {
-    "#config": "./config.ts",
-    "#database/*": "./database/*.ts"
+    "#fixtures": "./fixtures/register.ts",
+    "#lib/*.ts": "./lib/*.ts"
   },
   "engines": {
     "node": "24.x"
   },
   "allowScripts": {
+    "@parcel/watcher": true,
     "esbuild": true,
     "fsevents": true
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
+    "@jellyfin/sdk": "0.13.0",
     "@lucide/icons": "^1.43.0",
+    "alpinejs": "3.15.8",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^1.0.0-rc.4",
@@ -37,27 +40,29 @@
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "^5.0.0"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.build.json && npm run css:build",
-    "check": "npm run typecheck && npm run lint && npm run format:check",
-    "clean": "rm -rf dist",
+    "build": "npm run build:server && npm run build:css",
+    "build:server": "tsc --project tsconfig.build.json",
+    "build:css": "tailwindcss -i src/styles/index.css -o public/styles/app.css --minify",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
+    "clean": "rm -rf dist && rm -rf public/styles",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "css:build": "tailwindcss -i ./src/styles/index.css -o ./public/styles/app.css --minify",
-    "css:dev": "tailwindcss -i ./src/styles/index.css -o ./public/styles/app.css --watch",
-    "dev": "concurrently --kill-others-on-fail \"npm:dev:server\" \"npm:css:dev\"",
+    "dev": "concurrently --kill-others-on-fail \"npm:dev:server\" \"npm:dev:css\"",
     "dev:server": "tsx watch src/main.ts",
+    "dev:css": "tailwindcss -i src/styles/index.css -o public/styles/app.css --watch",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "oxlint",
     "prebuild": "npm run clean && npm run typecheck",
     "playwright:test": "playwright test",
-    "playwright:test:file": "playwright test --workers=1",
     "playwright:ui": "playwright test --ui",
     "playwright:install": "playwright install chromium",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "start": "NODE_ENV=production node dist/main.js"
   }

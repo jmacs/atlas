@@ -2,14 +2,15 @@ import type {Child} from 'hono/jsx';
 
 import {Card} from '../../ui/Card.tsx';
 import {DesignSystemLayout} from './DesignSystemLayout.tsx';
+import {PageHeader} from '../../ui/Page.tsx';
 
 export function TypographyPage() {
   return (
-    <DesignSystemLayout
-      activePath="/design-system/typography"
-      title="Typography"
-      description="Type styles for clear hierarchy, comfortable reading, and dense application interfaces."
-    >
+    <DesignSystemLayout activePath="/design-system/typography" title="Typography">
+      <PageHeader
+        title="Typography"
+        description="Type styles for clear hierarchy, comfortable reading, and dense application interfaces."
+      />
       <Card>
         <div class="divide-y divide-border">
           <TypeSpecimen label="Display · type-display · 36px / 40px" class="pb-8">

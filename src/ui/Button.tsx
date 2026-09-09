@@ -1,5 +1,8 @@
 import type {Child, JSX} from 'hono/jsx';
 import clsx from 'clsx';
+import {LoaderCircle} from '@lucide/icons';
+
+import {Icon} from './Icon.tsx';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md';
@@ -32,6 +35,8 @@ export function buttonClassNames(
 type ButtonProps = Omit<JSX.IntrinsicElements['button'], 'children' | 'class'> & {
   children: Child;
   class?: string;
+  /** `true` displays a persistent loading state; `htmx` displays it during an HTMX request. */
+  isLoading?: boolean | 'htmx';
   size?: ButtonSize;
   variant?: ButtonVariant;
 };
@@ -39,13 +44,34 @@ type ButtonProps = Omit<JSX.IntrinsicElements['button'], 'children' | 'class'> &
 export function Button({
   children,
   class: className,
+  isLoading = false,
   size = 'md',
   type = 'button',
   variant = 'primary',
+  disabled,
   ...props
 }: ButtonProps) {
+  const usesHtmxLoading = isLoading === 'htmx';
+  const showsLoader = isLoading === true || usesHtmxLoading;
+  const isDisabled = disabled || isLoading === true;
+  const htmxIndicator = usesHtmxLoading ? 'find [data-button-loader]' : undefined;
   return (
-    <button type={type} class={buttonClassNames(variant, size, className)} {...props}>
+    <button
+      type={type}
+      class={buttonClassNames(variant, size, className)}
+      disabled={isDisabled}
+      aria-busy={isLoading === true ? 'true' : undefined}
+      hx-indicator={htmxIndicator}
+      {...props}
+    >
+      {showsLoader ? (
+        <Icon
+          class={clsx('animate-spin', usesHtmxLoading && 'htmx-indicator')}
+          data-button-loader
+          icon={LoaderCircle}
+          size={16}
+        />
+      ) : null}
       {children}
     </button>
   );

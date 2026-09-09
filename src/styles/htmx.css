@@ -1,0 +1,8 @@
+/* HTMX hides indicators with opacity, which still reserves layout space. */
+.htmx-indicator[data-button-loader] {
+  display: none;
+}
+
+.htmx-request.htmx-indicator[data-button-loader] {
+  display: inline-block;
+}

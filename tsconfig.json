@@ -21,9 +21,9 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "actions/**/*.ts",
-    "config.ts",
-    "database/**/*.ts",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "fixtures/**/*.ts",
     "drizzle.config.ts",
     "playwright.config.ts",
     "e2e/**/*.ts",

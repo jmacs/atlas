@@ -1,6 +1,9 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source('../');
 @import './theme.css';
 @import './base.css';
 @import './dialog.css';
 @import './table.css';
 @import './toast.css';
+@import './htmx.css';
+@source '../../public/scripts';
+@import './typeahead.css';
