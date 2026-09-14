@@ -31,6 +31,7 @@ test('navigation reaches apps and nested pages and restores keyboard focus', asy
     'Actions',
     'Jellyfin',
     'Catalog',
+    'Manage Collection',
     'Collection Updaters',
     'Design system',
   ]);

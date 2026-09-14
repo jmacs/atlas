@@ -10,6 +10,7 @@ test('navigation source lists searchable visible parents and children', async ()
     'Actions',
     'Jellyfin',
     'Jellyfin / Catalog',
+    'Jellyfin / Manage Collection',
     'Jellyfin / Collection Updaters',
     'Design system',
     'Design system / Components',

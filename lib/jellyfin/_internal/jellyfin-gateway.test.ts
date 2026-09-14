@@ -23,6 +23,18 @@ import {BaseItemKind} from '@jellyfin/sdk/lib/generated-client/models/base-item-
 import {createJellyfinGateway} from './jellyfin-gateway.ts';
 
 describe('Jellyfin gateway', () => {
+  test('adds all selected movie IDs to the selected collection', async () => {
+    sdk.addToCollection.mockResolvedValue({});
+    const gateway = createJellyfinGateway({server: 'http://jellyfin.test', apiKey: 'key'});
+
+    await gateway.addMoviesToCollection('classics', ['godzilla', 'kong']);
+
+    expect(sdk.addToCollection).toHaveBeenCalledWith({
+      collectionId: 'classics',
+      ids: ['godzilla', 'kong'],
+    });
+  });
+
   test('paginates catalog records and pulls each collection membership in order', async () => {
     const movies = Array.from({length: 501}, (_, index) => ({
       Id: `movie-${index}`,

@@ -23,6 +23,7 @@ import {
   CatalogMovieMembership,
 } from './CatalogBrowserPage.tsx';
 import {CatalogCard, CatalogContent} from './CatalogStatus.tsx';
+import {CollectionManagerPage, type CollectionManagerPageProps} from './CollectionManagerPage.tsx';
 import {
   catalogBrowserForPage,
   catalogCollectionMembersForPage,
@@ -41,6 +42,12 @@ import {
   collectionUpdaterEditorViewModels,
   collectionUpdaterPreviewForPage,
 } from './collection-updater-presentation.ts';
+import {
+  collectionManagerCollectionItems,
+  collectionManagerMovieItems,
+  collectionManagerSelection,
+  resolveCollectionManagerSelection,
+} from './collection-manager-presentation.ts';
 import {validateProposedUpdaterTargets} from './collection-updater-save.ts';
 
 const app = new Hono<AtlasEnv>();
@@ -102,6 +109,73 @@ app.get('/catalog/movies/:movieId', async (c) => {
   const membership = catalogMovieMembershipForPage(catalog, c.req.param('movieId'));
   const status = membership.kind === 'not_found' ? 404 : 200;
   return c.html(<CatalogMovieMembership catalog={membership} />, status);
+});
+
+app.get('/collection-manager', async (c) => {
+  const catalog = await createCatalogStore().read();
+  return c.html(
+    <CollectionManagerPage
+      catalogAvailable={catalog.kind === 'ready'}
+      feedback={collectionManagerNotice(c.req.query('notice'))}
+    />,
+  );
+});
+
+app.get('/collection-manager/collections', async (c) => {
+  const catalog = await createCatalogStore().read();
+  const search = (c.req.query('q') ?? '').trim();
+  return c.json({
+    search,
+    kind: 'jellyfin.collection',
+    items: collectionManagerCollectionItems(catalog, search),
+  } satisfies TypeaheadResponse);
+});
+
+app.get('/collection-manager/movies', async (c) => {
+  const catalog = await createCatalogStore().read();
+  const search = (c.req.query('q') ?? '').trim();
+  return c.json({
+    search,
+    kind: 'jellyfin.movie',
+    items: collectionManagerMovieItems(catalog, search),
+  } satisfies TypeaheadResponse);
+});
+
+app.post('/collection-manager', async (c) => {
+  const form = await c.req.raw.formData();
+  const collectionId = stringValue(form.get('collectionId'));
+  const movieIds = form
+    .getAll('movieIds')
+    .flatMap((value) => (typeof value === 'string' ? [value] : []));
+  const catalog = await createCatalogStore().read();
+  const resolved = resolveCollectionManagerSelection(catalog, collectionId, movieIds);
+  if (resolved.kind === 'invalid') {
+    return collectionManagerErrorResponse(
+      c,
+      catalog,
+      collectionId,
+      movieIds,
+      resolved.message,
+      400,
+    );
+  }
+  try {
+    await createJellyfinGateway({
+      server: CONFIG.JELLYFIN_SERVER,
+      apiKey: CONFIG.JELLYFIN_API_KEY,
+    }).addMoviesToCollection(resolved.collectionId, resolved.movieIds);
+  } catch (error) {
+    logger.error(error, 'Adding movies to a Jellyfin collection failed');
+    return collectionManagerErrorResponse(
+      c,
+      catalog,
+      collectionId,
+      movieIds,
+      'Jellyfin could not add the movies to the collection. Try again.',
+      502,
+    );
+  }
+  return c.redirect('/jellyfin/collection-manager?notice=updated', 303);
 });
 
 app.get('/collection-updaters', async (c) => {
@@ -318,6 +392,34 @@ function noticeFeedback(notice?: string): CollectionUpdaterEditorPageProps['feed
     default:
       return undefined;
   }
+}
+
+function collectionManagerNotice(notice?: string): CollectionManagerPageProps['feedback'] {
+  return notice === 'updated'
+    ? {kind: 'success', message: 'The selected movies were added to the collection.'}
+    : undefined;
+}
+
+function collectionManagerErrorResponse(
+  c: Context<AtlasEnv>,
+  catalog: CatalogReadResult,
+  collectionId: string | undefined,
+  movieIds: readonly string[],
+  message: string,
+  status: 400 | 502,
+) {
+  return c.html(
+    <CollectionManagerPage
+      catalogAvailable={catalog.kind === 'ready'}
+      feedback={{kind: 'error', message}}
+      selection={collectionManagerSelection(catalog, collectionId, movieIds)}
+    />,
+    status,
+  );
+}
+
+function stringValue(value: FormDataEntryValue | null): string | undefined {
+  return typeof value === 'string' ? value : undefined;
 }
 
 function unavailableLibraryResponse(c: Context<AtlasEnv>, message: string) {

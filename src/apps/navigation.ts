@@ -1,6 +1,7 @@
 import type {AppNavigationItem} from '../ui/AppLayout.tsx';
 import {
   Clapperboard,
+  FolderInput,
   LibraryBig,
   ListRestart,
   Palette,
@@ -28,6 +29,12 @@ export const navigation: readonly AppNavigationItem[] = [
         label: 'Catalog',
         icon: LibraryBig,
         description: 'Browse cached Jellyfin collections and movies.',
+      },
+      {
+        href: '/jellyfin/collection-manager',
+        label: 'Manage Collection',
+        icon: FolderInput,
+        description: 'Select movies and add them to a Jellyfin collection.',
       },
       {
         href: '/jellyfin/collection-updaters',

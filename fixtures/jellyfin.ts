@@ -45,5 +45,14 @@ export function createJellyfinFixture(): Hono {
     });
   });
 
+  app.post('/Collections/:collectionId/Items', (c) => {
+    const collection = collections.find(({id}) => id === c.req.param('collectionId'));
+    const ids = (c.req.query('ids') ?? c.req.query('Ids') ?? '').split(',').filter(Boolean);
+    if (!collection || !ids.length || ids.some((id) => !movies.some((movie) => movie.id === id))) {
+      return c.json({error: 'Invalid collection membership update'}, 400);
+    }
+    return c.body(null, 204);
+  });
+
   return app;
 }
