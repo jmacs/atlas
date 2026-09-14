@@ -12,6 +12,7 @@ import {
 import {Hono, type Context} from 'hono';
 
 import type {AtlasApp, AtlasEnv} from '../../system/contracts.ts';
+import {logger} from '../../system/logger.ts';
 import {Alert} from '../../ui/Alert.tsx';
 import {PageHeader} from '../../ui/Page.tsx';
 import {Toast} from '../../ui/Toast.tsx';
@@ -68,7 +69,8 @@ app.post('/catalog/refresh', async (c) => {
         </Toast>
       </>,
     );
-  } catch {
+  } catch (error) {
+    logger.error(error, 'Jellyfin catalog refresh failed');
     const catalog = await createCatalogStore().read();
     return c.html(
       <>
@@ -210,7 +212,8 @@ app.post('/collection-updaters/save', async (c) => {
       );
     }
     return c.redirect('/jellyfin/collection-updaters?notice=saved', 303);
-  } catch {
+  } catch (error) {
+    logger.error(error, 'Saving Jellyfin Collection Updaters failed');
     return saveErrorResponse(
       c,
       state.catalog,
@@ -274,6 +277,14 @@ async function loadState(): Promise<RequestState> {
     createCatalogStore().read(),
     createCollectionUpdaterLibrary().list(),
   ]);
+  if (catalog.status === 'rejected') {
+    logger.error(catalog.reason, 'Reading the Jellyfin catalog failed');
+  } else if (catalog.value.kind === 'unavailable') {
+    logger.error(catalog.value.cause, 'Jellyfin catalog is unavailable');
+  }
+  if (library.status === 'rejected') {
+    logger.error(library.reason, 'Reading saved Jellyfin Collection Updaters failed');
+  }
   return {
     catalog:
       catalog.status === 'fulfilled'
