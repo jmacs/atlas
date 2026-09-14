@@ -18,6 +18,12 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
+    env:
+      ATLAS_APPDATA_DIR: .local
+      ATLAS_MOVIES_DIR: /tmp/atlas-movies
+      ATLAS_BOOKS_DIR: /tmp/atlas-books
+      JELLYFIN_SERVER: http://127.0.0.1:3000
+      JELLYFIN_API_KEY: atlas-ci-token
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
