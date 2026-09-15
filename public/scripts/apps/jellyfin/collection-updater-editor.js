@@ -1,4 +1,5 @@
 import Alpine from 'alpinejs';
+import {randomId} from '../../ids.js';
 
 Alpine.data('collectionUpdaterEditor', () => ({
   catalog: null,
@@ -75,7 +76,7 @@ Alpine.data('collectionUpdaterEditor', () => ({
     this.editorErrors = {};
     this.editorOpener = opener;
     this.editorDraft = {
-      id: crypto.randomUUID(),
+      id: randomId(),
       enabled: true,
       collection: {id: '', title: ''},
       conditions: [this.yearCondition()],

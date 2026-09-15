@@ -1,3 +1,5 @@
+import {nextId} from '../ids.js';
+
 export class TypeaheadElement extends HTMLElement {
   static observedAttributes = ['data-selected', 'disabled'];
 
@@ -12,7 +14,7 @@ export class TypeaheadElement extends HTMLElement {
     this.multiple = this.dataset.multi === 'true';
     this.initial ??= this.selectedAttributeItems();
     this.committed ??= structuredClone(this.initial);
-    this.list.id = `typeahead-${crypto.randomUUID()}`;
+    this.list.id = nextId('typeahead');
     this.input.setAttribute('aria-controls', this.list.id);
     this.listeners = new AbortController();
     const on = (element, event, handler) =>
