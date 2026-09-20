@@ -1,4 +1,4 @@
-import {describe, expect, test, vi} from 'vitest';
+import {beforeEach, describe, expect, test, vi} from 'vitest';
 
 const sdk = vi.hoisted(() => ({
   addToCollection: vi.fn(),
@@ -23,6 +23,11 @@ import {BaseItemKind} from '@jellyfin/sdk/lib/generated-client/models/base-item-
 import {createJellyfinGateway} from './jellyfin-gateway.ts';
 
 describe('Jellyfin gateway', () => {
+  beforeEach(() => {
+    sdk.addToCollection.mockReset();
+    sdk.getItems.mockReset();
+  });
+
   test('adds all selected movie IDs to the selected collection', async () => {
     sdk.addToCollection.mockResolvedValue({});
     const gateway = createJellyfinGateway({server: 'http://jellyfin.test', apiKey: 'key'});
@@ -39,6 +44,7 @@ describe('Jellyfin gateway', () => {
     const movies = Array.from({length: 501}, (_, index) => ({
       Id: `movie-${index}`,
       Name: `Movie ${index}`,
+      Type: BaseItemKind.Movie,
       Genres: ['Drama'],
       ProductionYear: 2000 + index,
     }));
@@ -101,7 +107,7 @@ describe('Jellyfin gateway', () => {
       'series',
     ]);
     for (const [request] of sdk.getItems.mock.calls) {
-      expect(request).toMatchObject({recursive: true});
+      expect(request).toMatchObject({recursive: true, collapseBoxSetItems: false});
     }
     expect(
       sdk.getItems.mock.calls
@@ -110,5 +116,55 @@ describe('Jellyfin gateway', () => {
         )
         .map(([request]) => request.startIndex),
     ).toEqual([0, 500]);
+  });
+
+  test('disables box set collapsing and excludes collections from the movie catalog', async () => {
+    sdk.getItems.mockImplementation(async ({includeItemTypes, parentId, collapseBoxSetItems}) => {
+      if (parentId) {
+        return {data: {Items: [], TotalRecordCount: 0}};
+      }
+      if (includeItemTypes[0] === BaseItemKind.BoxSet) {
+        return {
+          data: {
+            Items: [
+              {
+                Id: 'watchlist',
+                Name: 'Watchlist',
+                ServerId: 'server',
+                Type: BaseItemKind.BoxSet,
+              },
+            ],
+            TotalRecordCount: 1,
+          },
+        };
+      }
+      if (includeItemTypes[0] === BaseItemKind.Movie) {
+        return collapseBoxSetItems === false
+          ? {
+              data: {
+                Items: [
+                  {Id: 'actual-movie', Name: 'Actual Movie', Type: BaseItemKind.Movie},
+                  {Id: 'action', Name: 'Action', Type: BaseItemKind.BoxSet},
+                ],
+                TotalRecordCount: 2,
+              },
+            }
+          : {
+              data: {
+                Items: [{Id: 'action', Name: 'Action', Type: BaseItemKind.BoxSet}],
+                TotalRecordCount: 1,
+              },
+            };
+      }
+      return {data: {Items: [], TotalRecordCount: 0}};
+    });
+
+    const catalog = await createJellyfinGateway({
+      server: 'http://jellyfin.test',
+      apiKey: 'key',
+    }).pullCatalog();
+
+    expect(catalog.collections.map(({id}) => id)).toEqual(['watchlist']);
+    expect(catalog.movies.map(({id}) => id)).toEqual(['actual-movie']);
   });
 });

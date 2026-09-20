@@ -4,12 +4,13 @@ import {Document} from '../../ui/Document.tsx';
 
 type CinefileLayoutProps = {
   children: Child;
+  scripts?: string[];
   title: string;
 };
 
-export function CinefileLayout({children, title}: CinefileLayoutProps) {
+export function CinefileLayout({children, scripts, title}: CinefileLayoutProps) {
   return (
-    <Document title={`${title} · Cinefile`}>
+    <Document title={`${title} · Cinefile`} scripts={scripts}>
       <div class="min-h-dvh bg-background text-foreground">
         <header class="border-b border-border/80 bg-background/90">
           <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">

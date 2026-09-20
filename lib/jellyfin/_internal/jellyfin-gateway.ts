@@ -45,6 +45,7 @@ export function createJellyfinGateway({
         includeItemTypes: args.includeItemTypes,
         parentId: args.parentId,
         recursive: true,
+        collapseBoxSetItems: false,
         startIndex,
         limit: PAGE_SIZE,
         fields: [ItemFields.Etag, ItemFields.Genres],
@@ -105,11 +106,11 @@ function toCollection(item: BaseItemDto): CatalogCollection | undefined {
 }
 
 function toMovie(item: BaseItemDto): CatalogMovie | undefined {
-  return toMediaItem(item);
+  return item.Type === BaseItemKind.Movie ? toMediaItem(item) : undefined;
 }
 
 function toSeries(item: BaseItemDto): CatalogSeries | undefined {
-  return toMediaItem(item);
+  return item.Type === BaseItemKind.Series ? toMediaItem(item) : undefined;
 }
 
 function toMediaItem(item: BaseItemDto): CatalogMovie | undefined {

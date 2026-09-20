@@ -8,7 +8,7 @@ export function CinefileHomePage() {
   return (
     <CinefileLayout title="Movies">
       <PageHeader
-        title="Your next movie night starts here"
+        title="Find a movie"
         description="Search for movies, see whether they are already in your collection, and save missing titles for later."
       />
       <a

@@ -19,6 +19,7 @@ const MOVIES_DIR = requireEnv('ATLAS_MOVIES_DIR');
 const BOOKS_DIR = requireEnv('ATLAS_BOOKS_DIR');
 const JELLYFIN_SERVER = requireHttpUrl('JELLYFIN_SERVER');
 const JELLYFIN_API_KEY = requireEnv('JELLYFIN_API_KEY');
+const TMDB_TOKEN = requireEnv('TMDB_TOKEN');
 const SETTINGS_PATH = join(APPDATA_DIR, 'settings.json');
 
 // DO NOT EXPORT ANYTHING ELSE FROM THIS FILE!
@@ -33,6 +34,7 @@ export const CONFIG = {
   ACTION_CLEANUP_INTERVAL_MS,
   JELLYFIN_SERVER,
   JELLYFIN_API_KEY,
+  TMDB_TOKEN,
   paths: Object.freeze({
     root: ROOT_DIR,
     appData: APPDATA_DIR,
