@@ -5,11 +5,13 @@ import {Alert} from '../../ui/Alert.tsx';
 import {Badge} from '../../ui/Badge.tsx';
 import {Button} from '../../ui/Button.tsx';
 import {Card} from '../../ui/Card.tsx';
-import {Dialog} from '../../ui/Dialog.tsx';
+import {Confirm} from '../../ui/Confirm.tsx';
+import {Dialog, DialogPanel} from '../../ui/Dialog.tsx';
 import {Typeahead} from '../../ui/Typeahead.tsx';
 import {DescriptionList, DescriptionListItem} from '../../ui/DescriptionList.tsx';
 import {InputField, SelectField, TextAreaField, Toggle} from '../../ui/Forms.tsx';
 import {JsonlLogViewer} from '../../ui/JsonlLogViewer.tsx';
+import {TextLogViewer} from '../../ui/TextLogViewer.tsx';
 import {Table, TableBuilder} from '../../ui/Table.tsx';
 import type {ToastVariant} from '../../ui/Toast.tsx';
 import {DesignSystemLayout} from './DesignSystemLayout.tsx';
@@ -35,10 +37,12 @@ export function ComponentsPage() {
         <CardExample />
         <AccordionExample />
         <DialogExamples />
+        <ConfirmExample />
         <FormControlExamples />
         <TypeaheadExamples />
         <DescriptionListExample />
         <JsonlLogViewerExample />
+        <TextLogViewerExample />
         <TableExample />
       </div>
     </DesignSystemLayout>
@@ -197,6 +201,26 @@ function DialogExamples() {
   );
 }
 
+function ConfirmExample() {
+  return (
+    <Card
+      title="Confirmation"
+      description="A reusable confirmation prompt with caller-provided action behavior."
+    >
+      <DialogPanel>
+        <Confirm
+          title="Delete server?"
+          message="This action cannot be undone."
+          confirmLabel="Delete server"
+          confirmVariant="danger"
+          confirmButtonProps={{}}
+          showClose={false}
+        />
+      </DialogPanel>
+    </Card>
+  );
+}
+
 function FormControlExamples() {
   return (
     <Card
@@ -297,6 +321,22 @@ function JsonlLogViewerExample() {
             Raw JSON
           </label>
         }
+      />
+    </Card>
+  );
+}
+
+function TextLogViewerExample() {
+  return (
+    <Card
+      class="lg:col-span-2"
+      title="Text log viewer"
+      description="A read-only viewer for plain-text log files."
+    >
+      <TextLogViewer
+        title="Recent output"
+        emptyMessage="No log entries yet."
+        log={'[info] Atlas started\n[info] Listening on http://0.0.0.0:3000'}
       />
     </Card>
   );

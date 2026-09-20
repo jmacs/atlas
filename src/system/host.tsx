@@ -4,7 +4,7 @@ import {bodyLimit} from 'hono/body-limit';
 import {registerFixtures} from '#fixtures';
 import {CONFIG} from '#lib/config.ts';
 
-import {authMiddleware, registerAuthRoutes} from './auth.tsx';
+import {createAuthMiddleware, registerAuthRoutes} from './auth.tsx';
 import type {AtlasApp, AtlasEnv} from './contracts.ts';
 import {ErrorPage} from './ErrorPage.tsx';
 import {logger} from './logger.ts';
@@ -62,7 +62,8 @@ export function createHost({apps, dependencies, staticPaths}: HostOptions) {
     registerFixtures(app);
   }
 
-  app.use('*', authMiddleware);
+  const publicMountPaths = apps.filter((app) => app.isPublic === true).map((app) => app.mountPath);
+  app.use('*', createAuthMiddleware(publicMountPaths));
   registerAuthRoutes(app);
   registerApps(app, apps);
 

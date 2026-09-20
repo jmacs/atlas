@@ -136,32 +136,46 @@ function loginDestination(requestUrl: string): string {
   return `/login?next=${encodeURIComponent(`${url.pathname}${url.search}`)}`;
 }
 
-export const authMiddleware: MiddlewareHandler<AtlasEnv> = async (c, next) => {
-  c.header('Cache-Control', 'no-store');
+export function createAuthMiddleware(
+  publicMountPaths: readonly `/${string}`[],
+): MiddlewareHandler<AtlasEnv> {
+  return async (c, next) => {
+    c.header('Cache-Control', 'no-store');
 
-  if (AUTH_BYPASS || c.req.path === '/login') {
-    await next();
-    return;
-  }
+    if (AUTH_BYPASS || c.req.path === '/login' || isPublicPath(c.req.path, publicMountPaths)) {
+      await next();
+      return;
+    }
 
-  if (isAuthenticated(getCookie(c, SESSION_COOKIE))) {
-    await next();
-    return;
-  }
+    if (isAuthenticated(getCookie(c, SESSION_COOKIE))) {
+      await next();
+      return;
+    }
 
-  const destination = loginDestination(c.req.url);
-  if (c.req.header('HX-Request') === 'true') {
-    c.header('HX-Redirect', destination);
+    const destination = loginDestination(c.req.url);
+    if (c.req.header('HX-Request') === 'true') {
+      c.header('HX-Redirect', destination);
+      return c.text('Authentication required', 401);
+    }
+    if (c.req.path.startsWith('/api/')) {
+      return c.json({error: 'Authentication required'}, 401);
+    }
+    if (c.req.method === 'GET' || c.req.method === 'HEAD') {
+      return c.redirect(destination, 303);
+    }
     return c.text('Authentication required', 401);
-  }
-  if (c.req.path.startsWith('/api/')) {
-    return c.json({error: 'Authentication required'}, 401);
-  }
-  if (c.req.method === 'GET' || c.req.method === 'HEAD') {
-    return c.redirect(destination, 303);
-  }
-  return c.text('Authentication required', 401);
-};
+  };
+}
+
+export function isPublicPath(
+  requestPath: string,
+  publicMountPaths: readonly `/${string}`[],
+): boolean {
+  return publicMountPaths.some(
+    (mountPath) =>
+      mountPath === '/' || requestPath === mountPath || requestPath.startsWith(`${mountPath}/`),
+  );
+}
 
 export function registerAuthRoutes(app: Hono<AtlasEnv>) {
   app.get('/login', (c) => {

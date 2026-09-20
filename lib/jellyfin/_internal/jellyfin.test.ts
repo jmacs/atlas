@@ -44,6 +44,23 @@ describe('catalog', () => {
     expect(movieLabel(remote.movies[5]!)).toBe('Unknown');
   });
 
+  test('omits memberships for items or collections that disappeared during the pull', () => {
+    const result = createCatalog(
+      {
+        ...remote,
+        movies: remote.movies.filter(({id}) => id !== 'start'),
+        collectionMovieIds: {...remote.collectionMovieIds, missing: ['inside']},
+      },
+      '2026-09-05T00:00:00.000Z',
+    );
+
+    expect(result.collectionMovieIds).toEqual({first: [], second: []});
+    expect(result.movieCollectionIds).toEqual({});
+    expect(result.collectionSeriesIds).toEqual({first: ['series']});
+    expect(result.seriesCollectionIds).toEqual({series: ['first']});
+    expect(validateCatalog(result)).toEqual(result);
+  });
+
   test('validates complete shape and rejects duplicate IDs, references, duplicate membership, and mismatched indexes', () => {
     const valid = catalog();
     expect(validateCatalog(valid)).toEqual(valid);

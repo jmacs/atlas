@@ -11,7 +11,7 @@ export function QuickNav({class: className}: QuickNavProps) {
       <Typeahead
         name="navigation"
         label="Quick navigation"
-        source="/global/navigation"
+        source="/atlas/navigation"
         trigger={
           <Button
             data-trigger

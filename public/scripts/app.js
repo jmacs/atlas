@@ -128,6 +128,24 @@ document.addEventListener('htmx:beforeSwap', (event) => {
   }
 });
 
+document.addEventListener('htmx:afterRequest', (event) => {
+  const response = event.detail.xhr;
+  const trigger = event.detail.requestConfig?.elt;
+  if (
+    response?.getResponseHeader('X-Atlas-Dialog-Response') !== 'true' ||
+    response.status < 200 ||
+    response.status >= 300 ||
+    !(trigger instanceof Element)
+  ) {
+    return;
+  }
+
+  const dialog = trigger.closest('.dialog');
+  if (dialog instanceof HTMLDialogElement && dialog.open) {
+    dialog.close();
+  }
+});
+
 document.addEventListener(
   'close',
   (event) => {

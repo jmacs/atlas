@@ -11,6 +11,7 @@ export type AtlasEnv = {
 
 export type AtlasApp = {
   id: string;
+  isPublic?: boolean;
   mountPath: `/${string}`;
   app: Hono<AtlasEnv>;
 };

@@ -1,10 +1,12 @@
 import type {AppNavigationItem} from '../ui/AppLayout.tsx';
 import {
   Clapperboard,
+  Film,
   FolderInput,
   LibraryBig,
   ListRestart,
   Palette,
+  ScrollText,
   Shapes,
   Terminal,
   Type,
@@ -12,6 +14,20 @@ import {
 
 export const navigation: readonly AppNavigationItem[] = [
   {href: '/', label: 'Dashboard', hidden: true},
+  {
+    href: '/atlas',
+    label: 'Atlas',
+    icon: ScrollText,
+    description: 'Browse Atlas tools and diagnostic information.',
+    children: [
+      {
+        href: '/atlas/log-viewer',
+        label: 'Log Viewer',
+        icon: ScrollText,
+        description: 'Inspect Atlas logs.',
+      },
+    ],
+  },
   {
     href: '/actions',
     label: 'Actions',
@@ -43,6 +59,12 @@ export const navigation: readonly AppNavigationItem[] = [
         description: 'Build ordered rules for Jellyfin collections.',
       },
     ],
+  },
+  {
+    href: '/cinefile',
+    label: 'Cinefile',
+    icon: Film,
+    description: 'Find movies, check your collection, and keep a watchlist for later.',
   },
   {
     href: '/design-system',

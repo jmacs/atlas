@@ -48,15 +48,25 @@ export type RemoteCatalog = {
 };
 
 export function createCatalog(remote: RemoteCatalog, pulledAt: string): Catalog {
+  const collectionMovieIds = reconciledMembershipIndex(
+    remote.collectionMovieIds,
+    remote.collections,
+    remote.movies,
+  );
+  const collectionSeriesIds = reconciledMembershipIndex(
+    remote.collectionSeriesIds,
+    remote.collections,
+    remote.series,
+  );
   return {
     version: 1,
     collections: remote.collections,
     movies: remote.movies,
     series: remote.series,
-    collectionMovieIds: remote.collectionMovieIds,
-    movieCollectionIds: reverseIndex(remote.collectionMovieIds),
-    collectionSeriesIds: remote.collectionSeriesIds,
-    seriesCollectionIds: reverseIndex(remote.collectionSeriesIds),
+    collectionMovieIds,
+    movieCollectionIds: reverseIndex(collectionMovieIds),
+    collectionSeriesIds,
+    seriesCollectionIds: reverseIndex(collectionSeriesIds),
     baseSnapshot: {
       pulledAt,
       collections: snapshotItems(remote.collections),
@@ -64,6 +74,20 @@ export function createCatalog(remote: RemoteCatalog, pulledAt: string): Catalog 
       series: snapshotItems(remote.series),
     },
   };
+}
+
+function reconciledMembershipIndex(
+  memberships: Readonly<Record<string, readonly string[]>>,
+  collections: readonly {id: string}[],
+  items: readonly {id: string}[],
+): Record<string, string[]> {
+  const collectionIds = new Set(collections.map(({id}) => id));
+  const itemIds = new Set(items.map(({id}) => id));
+  return Object.fromEntries(
+    Object.entries(memberships)
+      .filter(([collectionId]) => collectionIds.has(collectionId))
+      .map(([collectionId, ids]) => [collectionId, ids.filter((id) => itemIds.has(id))]),
+  );
 }
 
 export function movieLabel(movie: CatalogMovie): string {
