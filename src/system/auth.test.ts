@@ -1,6 +1,6 @@
 import {expect, test} from 'vitest';
 
-import {isPublicPath} from './auth.tsx';
+import {isPublicPath} from './auth-policy.ts';
 
 test('matches public app mount paths at segment boundaries', () => {
   const publicApps = ['/cinefile'] as const;

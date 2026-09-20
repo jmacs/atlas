@@ -7,15 +7,11 @@ test('navigation reaches apps and nested pages and restores keyboard focus', asy
   await page.goto('/design-system/components');
   await navigation.open();
 
-  await expect(navigation.menu.getByRole('link')).toHaveText([
-    'Dashboard',
-    'Actions',
-    'Jellyfin',
-    'Design system',
-    'Components',
-    'Typography',
-    'Color palettes',
-  ]);
+  await expect(navigation.link('Dashboard')).toHaveAttribute('href', '/');
+  await expect(navigation.link('Actions')).toHaveAttribute('href', '/actions');
+  await expect(navigation.link('Jellyfin')).toHaveAttribute('href', '/jellyfin');
+  await expect(navigation.link('Design system')).toHaveAttribute('href', '/design-system');
+  await expect(navigation.designSystemPages).toBeVisible();
   await expect(navigation.link('Components')).toHaveAttribute('aria-current', 'page');
 
   await navigation.link('Typography').click();
@@ -26,16 +22,16 @@ test('navigation reaches apps and nested pages and restores keyboard focus', asy
   await navigation.link('Jellyfin').click();
   await expect(page).toHaveURL('/jellyfin');
   await navigation.open();
-  await expect(navigation.menu.getByRole('link')).toHaveText([
-    'Dashboard',
-    'Actions',
-    'Jellyfin',
-    'Catalog',
-    'Manage Collection',
-    'Collection Updaters',
-    'Design system',
-  ]);
   await expect(navigation.link('Jellyfin')).toHaveAttribute('aria-current', 'page');
+  await expect(navigation.link('Catalog')).toHaveAttribute('href', '/jellyfin/catalog');
+  await expect(navigation.link('Manage Collection')).toHaveAttribute(
+    'href',
+    '/jellyfin/collection-manager',
+  );
+  await expect(navigation.link('Collection Updaters')).toHaveAttribute(
+    'href',
+    '/jellyfin/collection-updaters',
+  );
   await navigation.link('Catalog').click();
   await expect(page).toHaveURL('/jellyfin/catalog');
 

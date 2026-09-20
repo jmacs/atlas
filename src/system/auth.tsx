@@ -5,6 +5,7 @@ import {Hono, type MiddlewareHandler} from 'hono';
 import {deleteCookie, getCookie, setCookie} from 'hono/cookie';
 
 import {CONFIG} from '#lib/config.ts';
+import {isPublicPath} from './auth-policy.ts';
 import type {AtlasEnv} from './contracts.ts';
 import {LoginPage} from './LoginPage.tsx';
 import {logger} from './logger.ts';
@@ -165,16 +166,6 @@ export function createAuthMiddleware(
     }
     return c.text('Authentication required', 401);
   };
-}
-
-export function isPublicPath(
-  requestPath: string,
-  publicMountPaths: readonly `/${string}`[],
-): boolean {
-  return publicMountPaths.some(
-    (mountPath) =>
-      mountPath === '/' || requestPath === mountPath || requestPath.startsWith(`${mountPath}/`),
-  );
 }
 
 export function registerAuthRoutes(app: Hono<AtlasEnv>) {
