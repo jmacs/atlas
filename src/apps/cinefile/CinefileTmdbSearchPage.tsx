@@ -11,14 +11,11 @@ type CinefileTmdbSearchPageProps = {
 
 export function CinefileTmdbSearchPage({query, results = [], status}: CinefileTmdbSearchPageProps) {
   const isResultsPage = status !== 'form';
+  const pageTitle = isResultsPage ? 'TMDB search results' : 'Search Movie DB';
+  const pageDescription = isResultsPage ? undefined : 'Find movies beyond your collection.';
   return (
-    <CinefileLayout
-      title={isResultsPage ? 'Movie DB results' : 'Search Movie DB'}
-      scripts={['/scripts/apps/cinefile/search-form.js']}
-    >
-      {isResultsPage ? null : (
-        <PageHeader title="Search Movie DB" description="Find movies beyond your collection." />
-      )}
+    <CinefileLayout title={pageTitle} scripts={['/scripts/apps/cinefile/search-form.js']}>
+      <PageHeader title={pageTitle} description={pageDescription} />
       <CinefileSearchForm action="/cinefile/tmdb-search/results" query={query} />
       <TmdbSearchContent query={query ?? ''} results={results} status={status} />
     </CinefileLayout>

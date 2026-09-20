@@ -1,5 +1,6 @@
 import {Hono} from 'hono';
 
+import {CONFIG} from '#lib/config.ts';
 import {createCatalogStore} from '#lib/jellyfin/catalog.ts';
 import {searchMovieDb} from '#lib/movie-db/movie-search.ts';
 import type {AtlasApp, AtlasEnv} from '../../system/contracts.ts';
@@ -10,6 +11,8 @@ import {CinefileTmdbSearchPage} from './CinefileTmdbSearchPage.tsx';
 import {CinefileLayout} from './CinefileLayout.tsx';
 
 const app = new Hono<AtlasEnv>();
+const CATALOG_SEARCH_RESULT_LIMIT = 50;
+const TMDB_SEARCH_RESULT_LIMIT = 25;
 
 app.get('/', (c) => c.html(<CinefileHomePage />));
 app.get('/search', (c) => c.html(<CinefileSearchPage status="form" />));
@@ -29,7 +32,7 @@ app.get('/search/results', async (c) => {
     movie.name.toLocaleLowerCase().includes(normalizedQuery),
   );
   const results = matches
-    .slice(0, 10)
+    .slice(0, CATALOG_SEARCH_RESULT_LIMIT)
     .map((movie) => catalogMovie(movie.id, movie.name, movie.year));
   const status = matches.length === 0 ? 'empty' : 'results';
   return c.html(
@@ -66,7 +69,9 @@ app.get('/tmdb-search/results', async (c) => {
     return c.html(<CinefileTmdbSearchPage status="form" />);
   }
   try {
-    const results = (await searchMovieDb(query)).map((movie) => movieDbMovie(movie));
+    const results = (await searchMovieDb(query))
+      .slice(0, TMDB_SEARCH_RESULT_LIMIT)
+      .map((movie) => movieDbMovie(movie));
     const status = results.length === 0 ? 'empty' : 'results';
     return c.html(<CinefileTmdbSearchPage query={query} results={results} status={status} />);
   } catch {
@@ -86,7 +91,13 @@ app.get('/movies/tmdb/:movieId', (c) => {
 });
 
 function catalogMovie(id: string, title: string, year?: number): CinefileMovie {
-  return {href: `/cinefile/movies/catalog/${id}`, id, title, ...(year === undefined ? {} : {year})};
+  return {
+    href: `/cinefile/movies/catalog/${id}`,
+    id,
+    posterUrl: `${CONFIG.JELLYFIN_SERVER}/Items/${encodeURIComponent(id)}/Images/Primary?maxWidth=342`,
+    title,
+    ...(year === undefined ? {} : {year}),
+  };
 }
 
 function movieDbMovie(movie: Awaited<ReturnType<typeof searchMovieDb>>[number]): CinefileMovie {

@@ -20,11 +20,11 @@ export function CinefileMovieTiles({movies}: CinefileMovieTilesProps) {
       {movies.map((movie) => (
         <li key={movie.id}>
           <a
-            class="group block overflow-hidden rounded-card border border-border bg-surface shadow-sm transition hover:border-accent/60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            class="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface shadow-sm transition hover:border-accent/60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             href={movie.href}
           >
             <MoviePoster movie={movie} />
-            <span class="block p-3">
+            <span class="block flex-1 p-3">
               <span class="type-heading-3 block truncate text-foreground">{movie.title}</span>
               {movie.year === undefined ? null : (
                 <span class="type-body-small mt-1 block text-muted">{movie.year}</span>
@@ -44,11 +44,10 @@ type MoviePosterProps = {
 function MoviePoster({movie}: MoviePosterProps) {
   if (movie.posterUrl !== undefined) {
     return (
-      <img
-        class="aspect-[2/3] w-full bg-surface-raised object-cover"
-        src={movie.posterUrl}
-        alt=""
-      />
+      <span class="relative block aspect-[2/3] w-full shrink-0 overflow-hidden bg-surface-raised">
+        <PosterLoadingPlaceholder />
+        <img class="absolute inset-0 size-full object-cover" src={movie.posterUrl} alt="" />
+      </span>
     );
   }
   return (
@@ -57,6 +56,16 @@ function MoviePoster({movie}: MoviePosterProps) {
       aria-hidden="true"
     >
       <Icon icon={ImageOff} size={28} />
+    </span>
+  );
+}
+
+function PosterLoadingPlaceholder() {
+  return (
+    <span class="absolute inset-0 motion-safe:animate-pulse" aria-hidden="true">
+      <span class="absolute inset-x-5 top-5 h-3/5 rounded-lg bg-border/50" />
+      <span class="absolute inset-x-5 bottom-12 h-3 rounded-full bg-border" />
+      <span class="absolute bottom-6 left-5 h-2.5 w-2/5 rounded-full bg-border/70" />
     </span>
   );
 }

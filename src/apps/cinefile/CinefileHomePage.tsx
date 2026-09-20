@@ -22,7 +22,7 @@ export function CinefileHomePage() {
           <Icon icon={Film} size={24} />
         </span>
         <span class="min-w-0 flex-1">
-          <span class="type-heading-3 block text-foreground">Search movies</span>
+          <span class="type-heading-3 block text-foreground">Search catalog</span>
           <span class="type-body-small mt-1 block text-muted">
             Find a title and check its place in your collection.
           </span>

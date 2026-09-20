@@ -1,6 +1,8 @@
+import {Search} from '@lucide/icons';
 import type {Child} from 'hono/jsx';
 
 import {Document} from '../../ui/Document.tsx';
+import {Icon} from '../../ui/Icon.tsx';
 
 type CinefileLayoutProps = {
   children: Child;
@@ -18,10 +20,11 @@ export function CinefileLayout({children, scripts, title}: CinefileLayoutProps) 
               CINEFILE
             </a>
             <a
-              class="type-control rounded-md px-3 py-2 text-muted transition hover:bg-surface hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
+              class="type-control inline-flex items-center gap-2 rounded-md px-3 py-2 text-muted transition hover:bg-surface hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
               href="/cinefile/search"
             >
-              Search movies
+              <Icon icon={Search} size={16} />
+              Search
             </a>
           </div>
         </header>

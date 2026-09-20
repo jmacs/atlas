@@ -7,6 +7,10 @@ vi.mock('#lib/jellyfin/catalog.ts', () => ({
   createCatalogStore: () => catalogStore,
 }));
 
+vi.mock('#lib/config.ts', () => ({
+  CONFIG: {JELLYFIN_SERVER: 'https://jellyfin.example.com'},
+}));
+
 vi.mock('#lib/movie-db/movie-search.ts', () => ({searchMovieDb}));
 
 import {cinefileApp} from './app.tsx';
@@ -34,7 +38,33 @@ test('searches the catalog case-insensitively and renders movie tiles', async ()
   expect(document).toContain('Moonfall</span>');
   expect(document).not.toContain('Sunshine</span>');
   expect(document).toContain('/cinefile/movies/catalog/moon-1');
+  expect(document).toContain(
+    'https://jellyfin.example.com/Items/moon-1/Images/Primary?maxWidth=342',
+  );
   expect(document).toContain('2 matches for “MOON”');
+});
+
+test('shows up to 50 catalog matches and summarizes the remaining results', async () => {
+  catalogStore.read.mockResolvedValue({
+    kind: 'ready',
+    catalog: {
+      movies: Array.from({length: 52}, (_, index) => ({
+        id: `movie-${index + 1}`,
+        name: `Movie ${index + 1}`,
+        year: 2000 + index,
+      })),
+    },
+  });
+
+  const response = await cinefileApp.app.request('/search/results?q=Movie');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('/cinefile/movies/catalog/movie-50');
+  expect(document).not.toContain('/cinefile/movies/catalog/movie-51');
+  expect(document).toContain('52 matches for “Movie”');
+  expect(document).toContain('+ 2 more');
+  expect(document).toContain('Catelog search results');
 });
 
 test('offers a Movie DB search when the catalog has no match', async () => {
@@ -42,7 +72,7 @@ test('offers a Movie DB search when the catalog has no match', async () => {
   const document = await response.text();
 
   expect(document).toContain('not in your catalog');
-  expect(document).toContain('Search Movie DB');
+  expect(document).toContain('Search for movie on TMDB');
   expect(document).toContain('/cinefile/tmdb-search/results?q=Arrival');
 });
 
@@ -59,6 +89,25 @@ test('renders Movie DB results as tiles', async () => {
   expect(document).toContain('https://image.tmdb.org/t/p/w342/arrival.jpg');
   expect(document).toContain('/cinefile/movies/tmdb/329865?title=Arrival&amp;year=2016');
   expect(document).toContain('1 match for “Arrival”');
+  expect(document).toContain('TMDB search results');
+});
+
+test('shows no more than 25 Movie DB results', async () => {
+  searchMovieDb.mockResolvedValue(
+    Array.from({length: 27}, (_, index) => ({
+      id: index + 1,
+      title: `Movie ${index + 1}`,
+      year: 2000 + index,
+    })),
+  );
+
+  const response = await cinefileApp.app.request('/tmdb-search/results?q=Movie');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('/cinefile/movies/tmdb/25?title=Movie+25&amp;year=2024');
+  expect(document).not.toContain('/cinefile/movies/tmdb/26?');
+  expect(document).toContain('25 matches for “Movie”');
 });
 
 test('uses the same movie page for catalog and Movie DB movie stubs', async () => {
