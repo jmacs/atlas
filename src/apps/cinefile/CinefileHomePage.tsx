@@ -13,16 +13,16 @@ export function CinefileHomePage() {
       />
       <div class="grid max-w-xl gap-4">
         <CinefileHomeTile
-          description="Find a title and check its place in your collection."
-          href="/cinefile/search"
-          icon={Film}
-          title="Search catalog"
-        />
-        <CinefileHomeTile
-          description="Find movies beyond your collection."
+          description="Search for movies in the Movie Database."
           href="/cinefile/tmdb-search"
           icon={Search}
           title="Search TMDB"
+        />
+        <CinefileHomeTile
+          description="Find a movie in your collection."
+          href="/cinefile/search"
+          icon={Film}
+          title="Search catalog"
         />
         <CinefileHomeTile
           description="See the movies you have asked to add."
