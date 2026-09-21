@@ -1,7 +1,8 @@
-import {Check, Clock, CloudOff, ImageOff, Minus, Star} from '@lucide/icons';
+import {Check, Clock, CloudOff, ImageOff, Minus, Plus, Star, Trash2} from '@lucide/icons';
 
 import {Alert} from '../../ui/Alert.tsx';
 import {Badge} from '../../ui/Badge.tsx';
+import {Button} from '../../ui/Button.tsx';
 import {Icon} from '../../ui/Icon.tsx';
 
 export type CinefileMovie = {
@@ -142,6 +143,9 @@ export function CinefileMoviePage({movie}: CinefileMoviePageProps) {
             )}
           </div>
         </div>
+        {movie.catalogStatus === 'not-included' && movie.request !== undefined ? (
+          <MovieRequestAction {...movie.request} />
+        ) : null}
       </article>
     </>
   );
@@ -160,8 +164,61 @@ export type CinefileMovieDetails = {
   runtimeMinutes?: number;
   tagline?: string;
   title: string;
+  request?: MovieRequestState;
   year?: number;
 };
+
+export type MovieRequestStatus = 'not-requested' | 'requested' | 'unavailable';
+
+type MovieRequestState = {
+  status: MovieRequestStatus;
+  tmdbId: number;
+};
+
+type MovieRequestActionProps = MovieRequestState & {
+  oob?: boolean;
+};
+
+export function MovieRequestAction({oob = false, status, tmdbId}: MovieRequestActionProps) {
+  if (status === 'unavailable') {
+    return null;
+  }
+  const isRequested = status === 'requested';
+  const method = isRequested
+    ? {'hx-delete': `/cinefile/movies/tmdb/${tmdbId}/request`}
+    : {
+        'hx-post': `/cinefile/movies/tmdb/${tmdbId}/request`,
+      };
+  return (
+    <section
+      id="movie-request-action"
+      class="mt-8 border-t border-border/80 pt-8"
+      hx-swap-oob={oob ? 'outerHTML' : undefined}
+      aria-label="Movie request"
+    >
+      <form {...method} hx-swap="none">
+        <Button
+          class="h-auto w-full justify-start rounded-card p-5 text-left sm:p-6"
+          type="submit"
+          variant={isRequested ? 'danger' : 'primary'}
+          isLoading="htmx"
+        >
+          <Icon icon={isRequested ? Trash2 : Plus} size={24} />
+          <span class="min-w-0">
+            <span class="type-heading-3 block">
+              {isRequested ? 'Remove from request queue' : 'Get this movie'}
+            </span>
+            <span class="type-body-small mt-1 block opacity-80">
+              {isRequested
+                ? 'Cancel your request to add this movie to Jellyfin.'
+                : 'Request that this movie be added to your Jellyfin catalog.'}
+            </span>
+          </span>
+        </Button>
+      </form>
+    </section>
+  );
+}
 
 type MovieDetailPosterProps = {
   movie: CinefileMovieDetails;

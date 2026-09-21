@@ -3,14 +3,16 @@ import type {Child} from 'hono/jsx';
 
 import {Document} from '../../ui/Document.tsx';
 import {Icon} from '../../ui/Icon.tsx';
+import {ToastRegion} from '../../ui/Toast.tsx';
 
 type CinefileLayoutProps = {
   children: Child;
+  notifications?: Child;
   scripts?: string[];
   title: string;
 };
 
-export function CinefileLayout({children, scripts, title}: CinefileLayoutProps) {
+export function CinefileLayout({children, notifications, scripts, title}: CinefileLayoutProps) {
   return (
     <Document title={`${title} · Cinefile`} scripts={scripts}>
       <div class="min-h-dvh bg-background text-foreground">
@@ -29,6 +31,7 @@ export function CinefileLayout({children, scripts, title}: CinefileLayoutProps) 
           </div>
         </header>
         <main class="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">{children}</main>
+        <ToastRegion>{notifications}</ToastRegion>
       </div>
     </Document>
   );

@@ -44,6 +44,8 @@ export const CONFIG = {
     applicationLog: join(APPDATA_DIR, 'logs', 'atlas.log'),
     movies: MOVIES_DIR,
     books: BOOKS_DIR,
+    cinefile: join(APPDATA_DIR, 'cinefile'),
+    cinefileRequests: join(APPDATA_DIR, 'cinefile', 'requests.json'),
     jellyfin: join(APPDATA_DIR, 'jellyfin'),
     jellyfinCatalog: join(APPDATA_DIR, 'jellyfin', 'catalog.json'),
     jellyfinCollectionUpdaters: join(APPDATA_DIR, 'jellyfin', 'collection-updaters.json'),

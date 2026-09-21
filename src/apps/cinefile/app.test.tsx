@@ -3,7 +3,12 @@ import {beforeEach, expect, test, vi} from 'vitest';
 const catalogStore = vi.hoisted(() => ({read: vi.fn()}));
 const getMovieDbMovie = vi.hoisted(() => vi.fn());
 const logger = vi.hoisted(() => ({error: vi.fn()}));
+const movieRequests = vi.hoisted(() => ({add: vi.fn(), read: vi.fn(), remove: vi.fn()}));
 const searchMovieDb = vi.hoisted(() => vi.fn());
+
+vi.mock('#lib/cinefile/movie-requests.ts', () => ({
+  createMovieRequestQueue: () => movieRequests,
+}));
 
 vi.mock('#lib/jellyfin/catalog.ts', () => ({
   createCatalogStore: () => catalogStore,
@@ -43,6 +48,14 @@ beforeEach(() => {
     runtimeMinutes: 116,
     tagline: 'Why are they here?',
   });
+  movieRequests.add.mockResolvedValue({
+    id: 'request-1',
+    title: 'Arrival',
+    tmdbId: 329865,
+    year: 2016,
+  });
+  movieRequests.read.mockResolvedValue([]);
+  movieRequests.remove.mockResolvedValue(undefined);
 });
 
 test('searches the catalog case-insensitively and renders movie tiles', async () => {
@@ -191,4 +204,84 @@ test('shows an honest status when the catalog cannot be read', async () => {
 
   expect(response.status).toBe(200);
   await expect(response.text()).resolves.toContain('Catalog unavailable');
+});
+
+test('offers a primary get action for a movie missing from the catalog', async () => {
+  const response = await cinefileApp.app.request('/movies/tmdb/329865');
+  const document = await response.text();
+
+  expect(document).toContain('Get this movie');
+  expect(document).toContain('Request that this movie be added to your Jellyfin catalog.');
+  expect(document).toContain('hx-post="/cinefile/movies/tmdb/329865/request"');
+  expect(document).toContain('bg-accent');
+});
+
+test('offers a danger action when the movie is already requested', async () => {
+  movieRequests.read.mockResolvedValue([
+    {id: 'request-1', title: 'Arrival', tmdbId: 329865, year: 2016},
+  ]);
+
+  const response = await cinefileApp.app.request('/movies/tmdb/329865');
+  const document = await response.text();
+
+  expect(document).toContain('Remove from request queue');
+  expect(document).toContain('hx-delete="/cinefile/movies/tmdb/329865/request"');
+  expect(document).toContain('bg-danger');
+});
+
+test('adds a movie request and swaps in the remove action', async () => {
+  const response = await cinefileApp.app.request('/movies/tmdb/329865/request', {method: 'POST'});
+  const document = await response.text();
+
+  expect(movieRequests.add).toHaveBeenCalledWith({
+    title: 'Arrival',
+    tmdbId: 329865,
+    year: 2016,
+  });
+  expect(document).toContain('Remove from request queue');
+  expect(document).toContain('hx-swap-oob="outerHTML"');
+  expect(document).toContain('Arrival was added to the request queue.');
+});
+
+test('removes a movie request and swaps in the get action', async () => {
+  const response = await cinefileApp.app.request('/movies/tmdb/329865/request', {
+    method: 'DELETE',
+  });
+  const document = await response.text();
+
+  expect(movieRequests.remove).toHaveBeenCalledWith(329865);
+  expect(document).toContain('Get this movie');
+  expect(document).toContain('The movie was removed from the request queue.');
+});
+
+test('shows an error toast when a movie request cannot be saved', async () => {
+  const error = new Error('disk full');
+  movieRequests.add.mockRejectedValue(error);
+
+  const response = await cinefileApp.app.request('/movies/tmdb/329865/request', {method: 'POST'});
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('The movie could not be added to the request queue. Try again.');
+  expect(document).toContain('role="alert"');
+  expect(logger.error).toHaveBeenCalledWith(
+    {err: error, movieId: 329865},
+    'Adding Cinefile movie request failed',
+  );
+});
+
+test('shows an error toast when the movie request queue cannot be read', async () => {
+  const error = new Error('invalid requests file');
+  movieRequests.read.mockRejectedValue(error);
+
+  const response = await cinefileApp.app.request('/movies/tmdb/329865');
+  const document = await response.text();
+
+  expect(document).toContain('The movie request queue could not be loaded.');
+  expect(document).toContain('role="alert"');
+  expect(document).not.toContain('Get this movie');
+  expect(logger.error).toHaveBeenCalledWith(
+    {err: error, movieId: 329865},
+    'Loading Cinefile movie requests failed',
+  );
 });

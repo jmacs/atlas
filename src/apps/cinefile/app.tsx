@@ -1,5 +1,6 @@
 import {Hono} from 'hono';
 
+import {createMovieRequestQueue} from '#lib/cinefile/movie-requests.ts';
 import {CONFIG} from '#lib/config.ts';
 import {createCatalogStore} from '#lib/jellyfin/catalog.ts';
 import {getMovieDbMovie, type MovieDbMovieDetails} from '#lib/movie-db/movie-details.ts';
@@ -7,18 +8,22 @@ import {searchMovieDb} from '#lib/movie-db/movie-search.ts';
 import type {AtlasApp, AtlasEnv} from '../../system/contracts.ts';
 import {logger} from '../../system/logger.ts';
 import {Alert} from '../../ui/Alert.tsx';
+import {Toast} from '../../ui/Toast.tsx';
 import {CinefileHomePage} from './CinefileHomePage.tsx';
 import {
   CinefileMoviePage,
+  MovieRequestAction,
   type CatalogStatus,
   type CinefileMovie,
   type CinefileMovieDetails,
+  type MovieRequestStatus,
 } from './CinefileMovie.tsx';
 import {CinefileSearchPage} from './CinefileSearchPage.tsx';
 import {CinefileTmdbSearchPage} from './CinefileTmdbSearchPage.tsx';
 import {CinefileLayout} from './CinefileLayout.tsx';
 
 const app = new Hono<AtlasEnv>();
+const movieRequests = createMovieRequestQueue();
 const CATALOG_SEARCH_RESULT_LIMIT = 50;
 const TMDB_SEARCH_RESULT_LIMIT = 25;
 
@@ -114,11 +119,96 @@ app.get('/movies/tmdb/:movieId', async (c) => {
       ? 'included'
       : 'not-included';
   }
+  let requestStatus: MovieRequestStatus | undefined;
+  let requestReadFailed = false;
+  if (catalogStatus === 'not-included') {
+    try {
+      const requests = await movieRequests.read();
+      requestStatus = requests.some(({tmdbId}) => tmdbId === movieId)
+        ? 'requested'
+        : 'not-requested';
+    } catch (error) {
+      requestStatus = 'unavailable';
+      requestReadFailed = true;
+      logger.error({err: error, movieId}, 'Loading Cinefile movie requests failed');
+    }
+  }
   return c.html(
-    <CinefileLayout title={movie.title}>
-      <CinefileMoviePage movie={movieDbMoviePage(movie, catalogStatus)} />
+    <CinefileLayout
+      title={movie.title}
+      notifications={
+        requestReadFailed ? (
+          <Toast variant="error">The movie request queue could not be loaded.</Toast>
+        ) : undefined
+      }
+    >
+      <CinefileMoviePage movie={movieDbMoviePage(movie, catalogStatus, requestStatus)} />
     </CinefileLayout>,
   );
+});
+
+app.post('/movies/tmdb/:movieId/request', async (c) => {
+  const movieId = validMovieId(c.req.param('movieId'));
+  if (movieId === undefined) {
+    return c.notFound();
+  }
+  try {
+    const [movie, catalog] = await Promise.all([
+      getMovieDbMovie(movieId),
+      createCatalogStore().read(),
+    ]);
+    if (catalog.kind !== 'ready') {
+      throw new Error('The Jellyfin catalog is unavailable.');
+    }
+    if (catalog.catalog.movies.some(({tmdbId}) => tmdbId === movieId)) {
+      throw new Error('The movie is already in the Jellyfin catalog.');
+    }
+    await movieRequests.add({
+      title: movie.title,
+      tmdbId: movie.id,
+      year: movie.year ?? null,
+    });
+    return c.html(
+      <>
+        <MovieRequestAction oob status="requested" tmdbId={movieId} />
+        <Toast oob variant="success">
+          {movie.title} was added to the request queue.
+        </Toast>
+      </>,
+    );
+  } catch (error) {
+    logger.error({err: error, movieId}, 'Adding Cinefile movie request failed');
+    return c.html(
+      <Toast oob variant="error">
+        The movie could not be added to the request queue. Try again.
+      </Toast>,
+    );
+  }
+});
+
+app.delete('/movies/tmdb/:movieId/request', async (c) => {
+  const movieId = validMovieId(c.req.param('movieId'));
+  if (movieId === undefined) {
+    return c.notFound();
+  }
+  try {
+    await movieRequests.remove(movieId);
+    return c.html(
+      <>
+        <MovieRequestAction oob status="not-requested" tmdbId={movieId} />
+        <Toast oob variant="success">
+          The movie was removed from the request queue.
+        </Toast>
+      </>,
+    );
+  } catch (error) {
+    logger.error({err: error, movieId}, 'Removing Cinefile movie request failed');
+    return c.html(
+      <Toast oob variant="error">
+        The movie could not be removed from the request queue. Try again.
+      </Toast>,
+    );
+  }
 });
 
 function catalogMovie(id: string, title: string, year?: number): CinefileMovie {
@@ -172,12 +262,14 @@ function catalogMoviePage(
 function movieDbMoviePage(
   movie: MovieDbMovieDetails,
   catalogStatus: CatalogStatus,
+  requestStatus?: MovieRequestStatus,
 ): CinefileMovieDetails {
   return {
     catalogStatus,
     detailSource: 'tmdb',
     genres: movie.genres,
     title: movie.title,
+    ...(requestStatus === undefined ? {} : {request: {status: requestStatus, tmdbId: movie.id}}),
     ...(movie.backdropPath === undefined
       ? {}
       : {backdropUrl: `https://image.tmdb.org/t/p/w1280${movie.backdropPath}`}),
@@ -190,6 +282,11 @@ function movieDbMoviePage(
     ...(movie.tagline === undefined ? {} : {tagline: movie.tagline}),
     ...(movie.year === undefined ? {} : {year: movie.year}),
   };
+}
+
+function validMovieId(value: string): number | undefined {
+  const movieId = Number(value);
+  return Number.isSafeInteger(movieId) && movieId > 0 ? movieId : undefined;
 }
 
 async function optionalMovieDbMovie(movieId: number): Promise<MovieDbMovieDetails | undefined> {
