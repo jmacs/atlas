@@ -26,10 +26,11 @@ ENV ATLAS_APPDATA_DIR=/appdata
 ENV ATLAS_MOVIES_DIR=/library/movies
 ENV ATLAS_BOOKS_DIR=/library/books
 
-# Required Jellyfin connection settings. Supply both at runtime, for example
-# with `docker run -e JELLYFIN_SERVER -e JELLYFIN_API_KEY ...`.
+# Required external-service settings. Supply these at runtime, for example
+# with `docker run -e JELLYFIN_SERVER -e JELLYFIN_API_KEY -e TMDB_TOKEN ...`.
 ENV JELLYFIN_SERVER=
 ENV JELLYFIN_API_KEY=
+ENV TMDB_TOKEN=
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev \
