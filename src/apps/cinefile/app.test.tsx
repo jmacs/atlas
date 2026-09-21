@@ -1,6 +1,8 @@
 import {beforeEach, expect, test, vi} from 'vitest';
 
 const catalogStore = vi.hoisted(() => ({read: vi.fn()}));
+const getMovieDbMovie = vi.hoisted(() => vi.fn());
+const logger = vi.hoisted(() => ({error: vi.fn()}));
 const searchMovieDb = vi.hoisted(() => vi.fn());
 
 vi.mock('#lib/jellyfin/catalog.ts', () => ({
@@ -11,7 +13,9 @@ vi.mock('#lib/config.ts', () => ({
   CONFIG: {JELLYFIN_SERVER: 'https://jellyfin.example.com'},
 }));
 
+vi.mock('#lib/movie-db/movie-details.ts', () => ({getMovieDbMovie}));
 vi.mock('#lib/movie-db/movie-search.ts', () => ({searchMovieDb}));
+vi.mock('../../system/logger.ts', () => ({logger}));
 
 import {cinefileApp} from './app.tsx';
 
@@ -21,11 +25,23 @@ beforeEach(() => {
     kind: 'ready',
     catalog: {
       movies: [
-        {id: 'moon-1', name: 'Moon', year: 2009},
+        {id: 'moon-1', name: 'Moon', tmdbId: 17431, year: 2009, genres: ['Science Fiction']},
         {id: 'moon-2', name: 'Moonfall', year: 2022},
         {id: 'other', name: 'Sunshine', year: 2007},
       ],
     },
+  });
+  getMovieDbMovie.mockResolvedValue({
+    id: 329865,
+    title: 'Arrival',
+    year: 2016,
+    posterPath: '/arrival.jpg',
+    backdropPath: '/arrival-backdrop.jpg',
+    genres: ['Drama', 'Science Fiction'],
+    overview: 'A linguist works with the military to communicate with alien lifeforms.',
+    rating: 7.6,
+    runtimeMinutes: 116,
+    tagline: 'Why are they here?',
   });
 });
 
@@ -87,7 +103,7 @@ test('renders Movie DB results as tiles', async () => {
   expect(response.status).toBe(200);
   expect(searchMovieDb).toHaveBeenCalledWith('Arrival');
   expect(document).toContain('https://image.tmdb.org/t/p/w342/arrival.jpg');
-  expect(document).toContain('/cinefile/movies/tmdb/329865?title=Arrival&amp;year=2016');
+  expect(document).toContain('/cinefile/movies/tmdb/329865');
   expect(document).toContain('1 match for “Arrival”');
   expect(document).toContain('TMDB search results');
 });
@@ -105,17 +121,74 @@ test('shows no more than 25 Movie DB results', async () => {
   const document = await response.text();
 
   expect(response.status).toBe(200);
-  expect(document).toContain('/cinefile/movies/tmdb/25?title=Movie+25&amp;year=2024');
-  expect(document).not.toContain('/cinefile/movies/tmdb/26?');
+  expect(document).toContain('/cinefile/movies/tmdb/25');
+  expect(document).not.toContain('/cinefile/movies/tmdb/26');
   expect(document).toContain('25 matches for “Movie”');
 });
 
-test('uses the same movie page for catalog and Movie DB movie stubs', async () => {
+test('uses the same detailed movie page for catalog and Movie DB movies', async () => {
   const catalogResponse = await cinefileApp.app.request('/movies/catalog/moon-1');
-  const movieDbResponse = await cinefileApp.app.request(
-    '/movies/tmdb/329865?title=Arrival&year=2016',
-  );
+  const movieDbResponse = await cinefileApp.app.request('/movies/tmdb/329865');
 
-  await expect(catalogResponse.text()).resolves.toContain('Movie details are coming soon.');
-  await expect(movieDbResponse.text()).resolves.toContain('Movie details are coming soon.');
+  const catalogDocument = await catalogResponse.text();
+  const movieDbDocument = await movieDbResponse.text();
+
+  expect(getMovieDbMovie).toHaveBeenCalledWith(17431);
+  expect(catalogDocument).toContain('In your catalog');
+  expect(movieDbDocument).toContain('Not in your catalog');
+  expect(movieDbDocument).toContain('Why are they here?');
+  expect(movieDbDocument).toContain('Overview');
+  expect(movieDbDocument).toContain('1h 56m');
+  expect(movieDbDocument).toContain('7.6 out of 10');
+  expect(movieDbDocument).toContain('https://image.tmdb.org/t/p/w1280/arrival-backdrop.jpg');
+});
+
+test('recognizes a TMDB movie already present in the catalog', async () => {
+  const response = await cinefileApp.app.request('/movies/tmdb/17431');
+
+  expect(response.status).toBe(200);
+  await expect(response.text()).resolves.toContain('In your catalog');
+});
+
+test('falls back to cached catalog information when TMDB details are unavailable', async () => {
+  const error = new Error('TMDB unavailable');
+  getMovieDbMovie.mockRejectedValueOnce(error);
+
+  const response = await cinefileApp.app.request('/movies/catalog/moon-1');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('TMDB details are unavailable.');
+  expect(document).toContain('Showing the information saved in your catalog.');
+  expect(document).toContain('Moon</h1>');
+  expect(document).toContain('role="alert"');
+  expect(logger.error).toHaveBeenCalledWith(
+    {err: error, movieId: 17431},
+    'Loading TMDB movie details failed',
+  );
+});
+
+test('renders a graceful error when a TMDB movie cannot be loaded', async () => {
+  const error = new Error('TMDB unavailable');
+  getMovieDbMovie.mockRejectedValueOnce(error);
+
+  const response = await cinefileApp.app.request('/movies/tmdb/329865');
+  const document = await response.text();
+
+  expect(response.status).toBe(502);
+  expect(document).toContain('TMDB movie details are unavailable right now.');
+  expect(document).toContain('role="alert"');
+  expect(logger.error).toHaveBeenCalledWith(
+    {err: error, movieId: 329865},
+    'Loading TMDB movie details failed',
+  );
+});
+
+test('shows an honest status when the catalog cannot be read', async () => {
+  catalogStore.read.mockResolvedValue({kind: 'missing'});
+
+  const response = await cinefileApp.app.request('/movies/tmdb/329865');
+
+  expect(response.status).toBe(200);
+  await expect(response.text()).resolves.toContain('Catalog unavailable');
 });

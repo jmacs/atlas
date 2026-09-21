@@ -2,10 +2,18 @@ import {Hono} from 'hono';
 
 import {CONFIG} from '#lib/config.ts';
 import {createCatalogStore} from '#lib/jellyfin/catalog.ts';
+import {getMovieDbMovie, type MovieDbMovieDetails} from '#lib/movie-db/movie-details.ts';
 import {searchMovieDb} from '#lib/movie-db/movie-search.ts';
 import type {AtlasApp, AtlasEnv} from '../../system/contracts.ts';
+import {logger} from '../../system/logger.ts';
+import {Alert} from '../../ui/Alert.tsx';
 import {CinefileHomePage} from './CinefileHomePage.tsx';
-import {CinefileMoviePage, type CinefileMovie} from './CinefileMovie.tsx';
+import {
+  CinefileMoviePage,
+  type CatalogStatus,
+  type CinefileMovie,
+  type CinefileMovieDetails,
+} from './CinefileMovie.tsx';
 import {CinefileSearchPage} from './CinefileSearchPage.tsx';
 import {CinefileTmdbSearchPage} from './CinefileTmdbSearchPage.tsx';
 import {CinefileLayout} from './CinefileLayout.tsx';
@@ -54,9 +62,11 @@ app.get('/movies/catalog/:movieId', async (c) => {
   if (!movie) {
     return c.notFound();
   }
+  const movieDbDetails =
+    movie.tmdbId === undefined ? undefined : await optionalMovieDbMovie(movie.tmdbId);
   return c.html(
     <CinefileLayout title={movie.name}>
-      <CinefileMoviePage movie={catalogMovie(movie.id, movie.name, movie.year)} />
+      <CinefileMoviePage movie={catalogMoviePage(movie, movieDbDetails)} />
     </CinefileLayout>,
   );
 });
@@ -79,13 +89,34 @@ app.get('/tmdb-search/results', async (c) => {
   }
 });
 
-app.get('/movies/tmdb/:movieId', (c) => {
-  const title = c.req.query('title')?.trim() || 'Movie';
-  const year = numericYear(c.req.query('year'));
-  const movie: CinefileMovie = {href: c.req.path, id: c.req.param('movieId'), title, ...year};
+app.get('/movies/tmdb/:movieId', async (c) => {
+  const movieId = Number(c.req.param('movieId'));
+  if (!Number.isSafeInteger(movieId) || movieId <= 0) {
+    return c.notFound();
+  }
+  const [movie, catalog] = await Promise.all([
+    optionalMovieDbMovie(movieId),
+    createCatalogStore().read(),
+  ]);
+  if (movie === undefined) {
+    return c.html(
+      <CinefileLayout title="Movie unavailable">
+        <Alert variant="warning">
+          TMDB movie details are unavailable right now. Please try again later.
+        </Alert>
+      </CinefileLayout>,
+      502,
+    );
+  }
+  let catalogStatus: CatalogStatus = 'unavailable';
+  if (catalog.kind === 'ready') {
+    catalogStatus = catalog.catalog.movies.some(({tmdbId}) => tmdbId === movieId)
+      ? 'included'
+      : 'not-included';
+  }
   return c.html(
     <CinefileLayout title={movie.title}>
-      <CinefileMoviePage movie={movie} />
+      <CinefileMoviePage movie={movieDbMoviePage(movie, catalogStatus)} />
     </CinefileLayout>,
   );
 });
@@ -101,12 +132,8 @@ function catalogMovie(id: string, title: string, year?: number): CinefileMovie {
 }
 
 function movieDbMovie(movie: Awaited<ReturnType<typeof searchMovieDb>>[number]): CinefileMovie {
-  const query = new URLSearchParams({title: movie.title});
-  if (movie.year !== undefined) {
-    query.set('year', String(movie.year));
-  }
   return {
-    href: `/cinefile/movies/tmdb/${movie.id}?${query}`,
+    href: `/cinefile/movies/tmdb/${movie.id}`,
     id: String(movie.id),
     ...(movie.posterPath === undefined
       ? {}
@@ -116,9 +143,66 @@ function movieDbMovie(movie: Awaited<ReturnType<typeof searchMovieDb>>[number]):
   };
 }
 
-function numericYear(value: string | undefined): {year?: number} {
-  const year = Number(value);
-  return Number.isInteger(year) ? {year} : {};
+type CatalogMovieRecord = {
+  genres?: string[];
+  id: string;
+  name: string;
+  tmdbId?: number;
+  year?: number;
+};
+
+function catalogMoviePage(
+  movie: CatalogMovieRecord,
+  movieDbDetails?: MovieDbMovieDetails,
+): CinefileMovieDetails {
+  if (movieDbDetails !== undefined) {
+    return movieDbMoviePage(movieDbDetails, 'included');
+  }
+  return {
+    catalogStatus: 'included',
+    detailSource: 'catalog',
+    genres: movie.genres ?? [],
+    posterUrl: jellyfinImageUrl(movie.id, 'Primary', 500),
+    backdropUrl: jellyfinImageUrl(movie.id, 'Backdrop/0', 1280),
+    title: movie.name,
+    ...(movie.year === undefined ? {} : {year: movie.year}),
+  };
+}
+
+function movieDbMoviePage(
+  movie: MovieDbMovieDetails,
+  catalogStatus: CatalogStatus,
+): CinefileMovieDetails {
+  return {
+    catalogStatus,
+    detailSource: 'tmdb',
+    genres: movie.genres,
+    title: movie.title,
+    ...(movie.backdropPath === undefined
+      ? {}
+      : {backdropUrl: `https://image.tmdb.org/t/p/w1280${movie.backdropPath}`}),
+    ...(movie.posterPath === undefined
+      ? {}
+      : {posterUrl: `https://image.tmdb.org/t/p/w500${movie.posterPath}`}),
+    ...(movie.overview === undefined ? {} : {overview: movie.overview}),
+    ...(movie.rating === undefined ? {} : {rating: movie.rating}),
+    ...(movie.runtimeMinutes === undefined ? {} : {runtimeMinutes: movie.runtimeMinutes}),
+    ...(movie.tagline === undefined ? {} : {tagline: movie.tagline}),
+    ...(movie.year === undefined ? {} : {year: movie.year}),
+  };
+}
+
+async function optionalMovieDbMovie(movieId: number): Promise<MovieDbMovieDetails | undefined> {
+  try {
+    return await getMovieDbMovie(movieId);
+  } catch (error) {
+    logger.error({err: error, movieId}, 'Loading TMDB movie details failed');
+    return undefined;
+  }
+}
+
+function jellyfinImageUrl(itemId: string, imageType: string, maxWidth: number): string {
+  return `${CONFIG.JELLYFIN_SERVER}/Items/${encodeURIComponent(itemId)}/Images/${imageType}?maxWidth=${maxWidth}`;
 }
 
 export const cinefileApp: AtlasApp = {

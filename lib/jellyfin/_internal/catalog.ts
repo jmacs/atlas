@@ -3,6 +3,7 @@ export type CatalogCollection = {id: string; name: string; serverId: string; eta
 export type CatalogMovie = {
   id: string;
   name: string;
+  tmdbId?: number;
   year?: number;
   premiereDate?: string;
   genres: string[];

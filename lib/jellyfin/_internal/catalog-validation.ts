@@ -69,6 +69,7 @@ function isMovie(value: unknown): value is CatalogMovie {
     isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.name === 'string' &&
+    optionalNumber(value.tmdbId) &&
     optionalNumber(value.year) &&
     optionalString(value.premiereDate) &&
     isStringArray(value.genres) &&

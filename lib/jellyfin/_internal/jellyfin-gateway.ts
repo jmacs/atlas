@@ -48,7 +48,7 @@ export function createJellyfinGateway({
         collapseBoxSetItems: false,
         startIndex,
         limit: PAGE_SIZE,
-        fields: [ItemFields.Etag, ItemFields.Genres],
+        fields: [ItemFields.Etag, ItemFields.Genres, ItemFields.ProviderIds],
       });
       const page = response.data.Items ?? [];
       items.push(...page);
@@ -106,7 +106,11 @@ function toCollection(item: BaseItemDto): CatalogCollection | undefined {
 }
 
 function toMovie(item: BaseItemDto): CatalogMovie | undefined {
-  return item.Type === BaseItemKind.Movie ? toMediaItem(item) : undefined;
+  if (item.Type !== BaseItemKind.Movie) {
+    return undefined;
+  }
+  const movie = toMediaItem(item);
+  return movie === undefined ? undefined : {...movie, ...optionalTmdbId(item)};
 }
 
 function toSeries(item: BaseItemDto): CatalogSeries | undefined {
@@ -136,4 +140,9 @@ function idAndName(item: BaseItemDto & {Id: string; Name: string}): {id: string;
 
 function optionalEtag(item: BaseItemDto): {etag?: string} {
   return typeof item.Etag === 'string' ? {etag: item.Etag} : {};
+}
+
+function optionalTmdbId(item: BaseItemDto): {tmdbId?: number} {
+  const tmdbId = Number(item.ProviderIds?.Tmdb);
+  return Number.isSafeInteger(tmdbId) && tmdbId > 0 ? {tmdbId} : {};
 }

@@ -47,6 +47,7 @@ describe('Jellyfin gateway', () => {
       Type: BaseItemKind.Movie,
       Genres: ['Drama'],
       ProductionYear: 2000 + index,
+      ...(index === 0 ? {ProviderIds: {Tmdb: '603'}} : {}),
     }));
     sdk.getItems.mockImplementation(async ({includeItemTypes, parentId, startIndex = 0}) => {
       if (includeItemTypes[0] === BaseItemKind.BoxSet) {
@@ -97,6 +98,7 @@ describe('Jellyfin gateway', () => {
     );
     expect(catalog.collections.map(({id}) => id)).toEqual(['collection-a', 'collection-b']);
     expect(catalog.movies.map(({id}) => id)).toEqual(movies.map(({Id}) => Id));
+    expect(catalog.movies[0]?.tmdbId).toBe(603);
     expect(catalog.collectionMovieIds).toEqual({'collection-a': ['movie-0'], 'collection-b': []});
     expect(catalog.collectionSeriesIds).toEqual({'collection-a': [], 'collection-b': ['series-1']});
     expect(progress).toEqual([
@@ -108,6 +110,7 @@ describe('Jellyfin gateway', () => {
     ]);
     for (const [request] of sdk.getItems.mock.calls) {
       expect(request).toMatchObject({recursive: true, collapseBoxSetItems: false});
+      expect(request.fields).toContain('ProviderIds');
     }
     expect(
       sdk.getItems.mock.calls
