@@ -6,12 +6,14 @@ import {CONFIG} from '#lib/config.ts';
 
 export type MovieRequest = {
   id: string;
+  posterPath: string | null;
+  requestedAt: string;
   title: string;
   tmdbId: number;
   year: number | null;
 };
 
-export type NewMovieRequest = Omit<MovieRequest, 'id'>;
+export type NewMovieRequest = Omit<MovieRequest, 'id' | 'requestedAt'>;
 
 export type MovieRequestQueue = {
   add(movie: NewMovieRequest): Promise<MovieRequest>;
@@ -40,7 +42,7 @@ export function createMovieRequestQueue(path = CONFIG.paths.cinefileRequests): M
         if (existing) {
           return existing;
         }
-        const request = {id: randomUUID(), ...movie};
+        const request = {id: randomUUID(), requestedAt: new Date().toISOString(), ...movie};
         await replace(path, [...requests, request]);
         return request;
       });
@@ -117,10 +119,14 @@ function validateMovieRequests(value: unknown): MovieRequest[] {
     if (typeof request.id !== 'string' || !request.id.trim()) {
       throw new Error(`${label} must have an ID.`);
     }
+    if (!isUtcDate(request.requestedAt)) {
+      throw new Error(`${label} must have a valid request timestamp.`);
+    }
     if (ids.has(request.id)) {
       throw new Error('Movie request IDs must be unique.');
     }
     validateNewMovieRequest({
+      posterPath: request.posterPath as string | null,
       title: request.title as string,
       tmdbId: request.tmdbId as number,
       year: request.year as number | null,
@@ -135,6 +141,9 @@ function validateMovieRequests(value: unknown): MovieRequest[] {
 }
 
 function validateNewMovieRequest(movie: NewMovieRequest): void {
+  if (movie.posterPath !== null && typeof movie.posterPath !== 'string') {
+    throw new Error('A movie request poster path must be a string or null.');
+  }
   if (typeof movie.title !== 'string' || !movie.title.trim()) {
     throw new Error('A movie request must have a title.');
   }
@@ -148,6 +157,14 @@ function validateTmdbId(tmdbId: number): void {
   if (!Number.isSafeInteger(tmdbId) || tmdbId <= 0) {
     throw new Error('A movie request must have a valid TMDB ID.');
   }
+}
+
+function isUtcDate(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime()) && date.toISOString() === value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

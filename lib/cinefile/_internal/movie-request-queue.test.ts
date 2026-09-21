@@ -27,7 +27,7 @@ test('lazily creates an empty request file when first read', async () => {
 
 test('adds complete request metadata once and removes it by TMDB ID', async () => {
   const queue = createMovieRequestQueue(path);
-  const movie = {title: 'Arrival', tmdbId: 329865, year: 2016};
+  const movie = {posterPath: '/arrival.jpg', title: 'Arrival', tmdbId: 329865, year: 2016};
 
   const [first, duplicate] = await Promise.all([queue.add(movie), queue.add(movie)]);
 
@@ -35,6 +35,7 @@ test('adds complete request metadata once and removes it by TMDB ID', async () =
     id: expect.stringMatching(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     ),
+    requestedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
     ...movie,
   });
   expect(duplicate).toEqual(first);
@@ -48,9 +49,15 @@ test('adds complete request metadata once and removes it by TMDB ID', async () =
 test('preserves a missing TMDB release year as null', async () => {
   const queue = createMovieRequestQueue(path);
 
-  const request = await queue.add({title: 'Unreleased Movie', tmdbId: 123, year: null});
+  const request = await queue.add({
+    posterPath: null,
+    title: 'Unreleased Movie',
+    tmdbId: 123,
+    year: null,
+  });
 
   expect(request.year).toBeNull();
+  expect(request.posterPath).toBeNull();
   await expect(readFile(path, 'utf8')).resolves.toContain('"year":null');
 });
 

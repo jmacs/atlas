@@ -11,8 +11,8 @@ type CinefileTmdbSearchPageProps = {
 
 export function CinefileTmdbSearchPage({query, results = [], status}: CinefileTmdbSearchPageProps) {
   const isResultsPage = status !== 'form';
-  const pageTitle = isResultsPage ? 'TMDB search results' : 'Search Movie DB';
-  const pageDescription = isResultsPage ? undefined : 'Find movies beyond your collection.';
+  const pageTitle = isResultsPage ? 'TMDB search results' : 'Search TMDB';
+  const pageDescription = isResultsPage ? undefined : 'Search for movies in the Movie Database.';
   return (
     <CinefileLayout title={pageTitle} scripts={['/scripts/apps/cinefile/search-form.js']}>
       <PageHeader title={pageTitle} description={pageDescription} />

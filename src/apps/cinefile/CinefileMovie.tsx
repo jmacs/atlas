@@ -1,5 +1,6 @@
 import {Check, Clock, CloudOff, ImageOff, Minus, Plus, Star, Trash2} from '@lucide/icons';
 
+import {formatDate} from '#lib/utils/dates.ts';
 import {Alert} from '../../ui/Alert.tsx';
 import {Badge} from '../../ui/Badge.tsx';
 import {Button} from '../../ui/Button.tsx';
@@ -8,7 +9,9 @@ import {Icon} from '../../ui/Icon.tsx';
 export type CinefileMovie = {
   href: string;
   id: string;
+  isInCatalog?: boolean;
   posterUrl?: string;
+  requestedAt?: string;
   title: string;
   year?: number;
 };
@@ -32,6 +35,11 @@ export function CinefileMovieTiles({movies}: CinefileMovieTilesProps) {
               {movie.year === undefined ? null : (
                 <span class="type-body-small mt-1 block text-muted">{movie.year}</span>
               )}
+              {movie.requestedAt === undefined ? null : (
+                <time class="type-body-small mt-1 block text-muted" dateTime={movie.requestedAt}>
+                  Requested {formatDate(movie.requestedAt)}
+                </time>
+              )}
             </span>
           </a>
         </li>
@@ -45,20 +53,26 @@ type MoviePosterProps = {
 };
 
 function MoviePoster({movie}: MoviePosterProps) {
-  if (movie.posterUrl !== undefined) {
-    return (
-      <span class="relative block aspect-[2/3] w-full shrink-0 overflow-hidden bg-surface-raised">
-        <PosterLoadingPlaceholder />
-        <img class="absolute inset-0 size-full object-cover" src={movie.posterUrl} alt="" />
-      </span>
-    );
-  }
   return (
-    <span
-      class="grid aspect-[2/3] w-full place-items-center bg-surface-raised text-muted"
-      aria-hidden="true"
-    >
-      <Icon icon={ImageOff} size={28} />
+    <span class="relative block aspect-[2/3] w-full shrink-0 overflow-hidden bg-surface-raised">
+      {movie.posterUrl !== undefined ? (
+        <>
+          <PosterLoadingPlaceholder />
+          <img class="absolute inset-0 size-full object-cover" src={movie.posterUrl} alt="" />
+        </>
+      ) : (
+        <span class="grid size-full place-items-center text-muted" aria-hidden="true">
+          <Icon icon={ImageOff} size={28} />
+        </span>
+      )}
+      {movie.isInCatalog ? (
+        <span
+          aria-label="In catalog"
+          class="absolute top-2 right-2 grid size-7 place-items-center rounded-full bg-accent text-accent-foreground shadow-sm"
+        >
+          <Icon icon={Check} size={16} />
+        </span>
+      ) : null}
     </span>
   );
 }

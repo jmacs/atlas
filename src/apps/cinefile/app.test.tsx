@@ -50,6 +50,7 @@ beforeEach(() => {
   });
   movieRequests.add.mockResolvedValue({
     id: 'request-1',
+    posterPath: '/arrival.jpg',
     title: 'Arrival',
     tmdbId: 329865,
     year: 2016,
@@ -105,6 +106,59 @@ test('offers a Movie DB search when the catalog has no match', async () => {
   expect(document).toContain('/cinefile/tmdb-search/results?q=Arrival');
 });
 
+test('links to TMDB search and movie requests from the Cinefile home page', async () => {
+  const response = await cinefileApp.app.request('/');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('Search TMDB');
+  expect(document).toContain('href="/cinefile/tmdb-search"');
+  expect(document).toContain('View requests');
+  expect(document).toContain('href="/cinefile/requests"');
+});
+
+test('lists movie requests newest first and links each tile to its movie page', async () => {
+  movieRequests.read.mockResolvedValue([
+    {
+      id: 'request-older',
+      posterPath: '/earlier.jpg',
+      requestedAt: '2026-09-18T12:00:00.000Z',
+      title: 'Earlier Movie',
+      tmdbId: 1,
+      year: 2001,
+    },
+    {
+      id: 'request-newer',
+      posterPath: '/later.jpg',
+      requestedAt: '2026-09-19T12:00:00.000Z',
+      title: 'Later Movie',
+      tmdbId: 2,
+      year: 2002,
+    },
+  ]);
+
+  const response = await cinefileApp.app.request('/requests');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('href="/cinefile/movies/tmdb/1"');
+  expect(document).toContain('href="/cinefile/movies/tmdb/2"');
+  expect(document).toContain('https://image.tmdb.org/t/p/w342/later.jpg');
+  expect(document.indexOf('Later Movie')).toBeLessThan(document.indexOf('Earlier Movie'));
+  expect(document).toContain('Requested');
+});
+
+test('shows an empty state when there are no movie requests', async () => {
+  const response = await cinefileApp.app.request('/requests');
+
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('Your request queue is empty');
+  expect(document).toContain('Search TMDB to find a movie to add.');
+  expect(document).toContain('href="/cinefile/tmdb-search"');
+});
+
 test('renders Movie DB results as tiles', async () => {
   searchMovieDb.mockResolvedValue([
     {id: 329865, title: 'Arrival', year: 2016, posterPath: '/arrival.jpg'},
@@ -119,6 +173,20 @@ test('renders Movie DB results as tiles', async () => {
   expect(document).toContain('/cinefile/movies/tmdb/329865');
   expect(document).toContain('1 match for “Arrival”');
   expect(document).toContain('TMDB search results');
+});
+
+test('marks Movie DB results that are already in the catalog', async () => {
+  searchMovieDb.mockResolvedValue([
+    {id: 17431, title: 'Moon', year: 2009, posterPath: '/moon.jpg'},
+    {id: 329865, title: 'Arrival', year: 2016, posterPath: '/arrival.jpg'},
+  ]);
+
+  const response = await cinefileApp.app.request('/tmdb-search/results?q=movie');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('aria-label="In catalog"');
+  expect(document.match(/aria-label="In catalog"/g)).toHaveLength(1);
 });
 
 test('shows no more than 25 Movie DB results', async () => {
@@ -234,6 +302,7 @@ test('adds a movie request and swaps in the remove action', async () => {
   const document = await response.text();
 
   expect(movieRequests.add).toHaveBeenCalledWith({
+    posterPath: '/arrival.jpg',
     title: 'Arrival',
     tmdbId: 329865,
     year: 2016,

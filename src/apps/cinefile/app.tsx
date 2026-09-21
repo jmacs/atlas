@@ -1,6 +1,6 @@
 import {Hono} from 'hono';
 
-import {createMovieRequestQueue} from '#lib/cinefile/movie-requests.ts';
+import {createMovieRequestQueue, type MovieRequest} from '#lib/cinefile/movie-requests.ts';
 import {CONFIG} from '#lib/config.ts';
 import {createCatalogStore} from '#lib/jellyfin/catalog.ts';
 import {getMovieDbMovie, type MovieDbMovieDetails} from '#lib/movie-db/movie-details.ts';
@@ -21,6 +21,7 @@ import {
 import {CinefileSearchPage} from './CinefileSearchPage.tsx';
 import {CinefileTmdbSearchPage} from './CinefileTmdbSearchPage.tsx';
 import {CinefileLayout} from './CinefileLayout.tsx';
+import {CinefileRequestsPage} from './CinefileRequestsPage.tsx';
 
 const app = new Hono<AtlasEnv>();
 const movieRequests = createMovieRequestQueue();
@@ -78,15 +79,39 @@ app.get('/movies/catalog/:movieId', async (c) => {
 
 app.get('/tmdb-search', (c) => c.html(<CinefileTmdbSearchPage status="form" />));
 
+app.get('/requests', async (c) => {
+  try {
+    const requests = await movieRequests.read();
+    const movies = requests
+      .toSorted((left, right) => right.requestedAt.localeCompare(left.requestedAt))
+      .map((request) => requestedMovie(request));
+    const status = movies.length === 0 ? 'empty' : 'results';
+    return c.html(<CinefileRequestsPage movies={movies} status={status} />);
+  } catch (error) {
+    logger.error({err: error}, 'Loading Cinefile movie requests failed');
+    return c.html(<CinefileRequestsPage movies={[]} status="error" />, 502);
+  }
+});
+
 app.get('/tmdb-search/results', async (c) => {
   const query = c.req.query('q')?.trim();
   if (!query) {
     return c.html(<CinefileTmdbSearchPage status="form" />);
   }
   try {
-    const results = (await searchMovieDb(query))
+    const [movies, catalog] = await Promise.all([
+      searchMovieDb(query),
+      createCatalogStore().read(),
+    ]);
+    const catalogTmdbIds =
+      catalog.kind === 'ready'
+        ? new Set(
+            catalog.catalog.movies.flatMap(({tmdbId}) => (tmdbId === undefined ? [] : [tmdbId])),
+          )
+        : new Set<number>();
+    const results = movies
       .slice(0, TMDB_SEARCH_RESULT_LIMIT)
-      .map((movie) => movieDbMovie(movie));
+      .map((movie) => movieDbMovie(movie, catalogTmdbIds.has(movie.id)));
     const status = results.length === 0 ? 'empty' : 'results';
     return c.html(<CinefileTmdbSearchPage query={query} results={results} status={status} />);
   } catch {
@@ -164,6 +189,7 @@ app.post('/movies/tmdb/:movieId/request', async (c) => {
       throw new Error('The movie is already in the Jellyfin catalog.');
     }
     await movieRequests.add({
+      posterPath: movie.posterPath ?? null,
       title: movie.title,
       tmdbId: movie.id,
       year: movie.year ?? null,
@@ -221,15 +247,32 @@ function catalogMovie(id: string, title: string, year?: number): CinefileMovie {
   };
 }
 
-function movieDbMovie(movie: Awaited<ReturnType<typeof searchMovieDb>>[number]): CinefileMovie {
+function movieDbMovie(
+  movie: Awaited<ReturnType<typeof searchMovieDb>>[number],
+  isInCatalog = false,
+): CinefileMovie {
   return {
     href: `/cinefile/movies/tmdb/${movie.id}`,
     id: String(movie.id),
+    ...(isInCatalog ? {isInCatalog: true} : {}),
     ...(movie.posterPath === undefined
       ? {}
       : {posterUrl: `https://image.tmdb.org/t/p/w342${movie.posterPath}`}),
     title: movie.title,
     ...(movie.year === undefined ? {} : {year: movie.year}),
+  };
+}
+
+function requestedMovie(request: MovieRequest): CinefileMovie {
+  return {
+    href: `/cinefile/movies/tmdb/${request.tmdbId}`,
+    id: String(request.tmdbId),
+    ...(request.posterPath === null
+      ? {}
+      : {posterUrl: `https://image.tmdb.org/t/p/w342${request.posterPath}`}),
+    requestedAt: request.requestedAt,
+    title: request.title,
+    ...(request.year === null ? {} : {year: request.year}),
   };
 }
 
