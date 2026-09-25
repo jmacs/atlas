@@ -67,6 +67,20 @@ export const navigation: readonly AppNavigationItem[] = [
     description: 'Find movies, check your collection, and keep a watchlist for later.',
   },
   {
+    href: '/cinefile-admin',
+    label: 'Cinefile Admin',
+    icon: Clapperboard,
+    description: 'Review and action movie requests from Cinefile.',
+    children: [
+      {
+        href: '/cinefile-admin/requests',
+        label: 'Movie Requests',
+        icon: ListRestart,
+        description: 'Review the movies waiting to be added to the collection.',
+      },
+    ],
+  },
+  {
     href: '/design-system',
     label: 'Design system',
     icon: Shapes,

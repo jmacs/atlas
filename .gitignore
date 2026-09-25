@@ -6,9 +6,8 @@
 .env.*
 .idea/
 .local/
-.plans/
+.dev/
 .playwright/
-.sketch/
 dist/
 e2e/experiments/
 node_modules/

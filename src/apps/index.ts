@@ -4,6 +4,7 @@ import {designSystemApp} from './design-system/app.tsx';
 import {jellyfinApp} from './jellyfin/app.tsx';
 import {actionsApp} from './actions/app.tsx';
 import {cinefileApp} from './cinefile/app.tsx';
+import {cinefileAdminApp} from './cinefile-admin/app.tsx';
 import type {AtlasApp} from '../system/contracts.ts';
 
 export const apps: AtlasApp[] = [
@@ -14,4 +15,5 @@ export const apps: AtlasApp[] = [
   jellyfinApp,
   actionsApp,
   cinefileApp,
+  cinefileAdminApp,
 ];
