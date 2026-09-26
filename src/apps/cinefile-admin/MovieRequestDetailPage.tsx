@@ -1,5 +1,6 @@
-import type {MovieRequest} from '#lib/cinefile/movie-requests.ts';
+import type {CinefileRequest} from '#lib/cinefile/requests.ts';
 import type {MovieDbMovieDetails} from '#lib/movie-db/movie-details.ts';
+import type {MovieDbTvDetails} from '#lib/movie-db/tv-details.ts';
 import {formatDate} from '#lib/utils/dates.ts';
 import {ArrowLeft, Check, Clock, ImageOff, Search, Star} from '@lucide/icons';
 
@@ -11,16 +12,21 @@ import {Icon} from '../../ui/Icon.tsx';
 import {CinefileAdminLayout} from './CinefileAdminLayout.tsx';
 
 type MovieRequestDetailPageProps = {
-  movie?: MovieDbMovieDetails;
-  request: MovieRequest;
+  movie?: MovieDbMovieDetails | MovieDbTvDetails;
+  request: CinefileRequest;
 };
 
 export function MovieRequestDetailPage({movie, request}: MovieRequestDetailPageProps) {
   const title = movie?.title ?? request.title;
   const year = movie?.year ?? request.year ?? undefined;
   const posterPath = movie?.posterPath ?? request.posterPath ?? undefined;
-  const runtime =
-    movie?.runtimeMinutes === undefined ? undefined : formatRuntime(movie.runtimeMinutes);
+  const runtimeMinutes =
+    request.kind === 'movie'
+      ? (movie as MovieDbMovieDetails | undefined)?.runtimeMinutes
+      : (movie as MovieDbTvDetails | undefined)?.episodeRuntimeMinutes;
+  const runtime = runtimeMinutes === undefined ? undefined : formatRuntime(runtimeMinutes);
+  const tvDetails =
+    request.kind === 'tvseries' ? (movie as MovieDbTvDetails | undefined) : undefined;
   const rating = movie?.rating === undefined ? undefined : movie.rating.toFixed(1);
   return (
     <CinefileAdminLayout activePath="/cinefile-admin/requests" title={title}>
@@ -30,7 +36,7 @@ export function MovieRequestDetailPage({movie, request}: MovieRequestDetailPageP
       </a>
       {movie === undefined ? (
         <Alert class="mb-6" variant="warning">
-          TMDB movie details are unavailable. Showing the information saved with the request.
+          TMDB details are unavailable. Showing the information saved with the request.
         </Alert>
       ) : null}
       <article>
@@ -61,6 +67,13 @@ export function MovieRequestDetailPage({movie, request}: MovieRequestDetailPageP
                   <span class="inline-flex items-center gap-1.5">
                     <Icon icon={Clock} size={15} aria-hidden="true" />
                     {runtime}
+                    {request.kind === 'tvseries' ? ' per episode' : ''}
+                  </span>
+                )}
+                {tvDetails === undefined ? null : (
+                  <span>
+                    {tvDetails.numberOfSeasons}{' '}
+                    {tvDetails.numberOfSeasons === 1 ? 'season' : 'seasons'}
                   </span>
                 )}
                 {rating === undefined ? null : (
@@ -104,6 +117,9 @@ export function MovieRequestDetailPage({movie, request}: MovieRequestDetailPageP
                   {formatDate(request.requestedAt)}
                 </DescriptionListItem>
                 <DescriptionListItem label="TMDB ID">{request.tmdbId}</DescriptionListItem>
+                <DescriptionListItem label="Type">
+                  {request.kind === 'movie' ? 'Movie' : 'TV series'}
+                </DescriptionListItem>
                 <DescriptionListItem label="Request ID">
                   <span class="break-all">{request.id}</span>
                 </DescriptionListItem>

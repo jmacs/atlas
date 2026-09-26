@@ -4,7 +4,7 @@ import {join} from 'node:path';
 import {mkdtemp} from 'node:fs/promises';
 import {afterEach, beforeEach, expect, test} from 'vitest';
 
-import {createMovieRequestQueue} from '../movie-requests.ts';
+import {createCinefileRequestQueue} from '../requests.ts';
 
 let directory: string;
 let path: string;
@@ -19,15 +19,21 @@ afterEach(async () => {
 });
 
 test('lazily creates an empty request file when first read', async () => {
-  const queue = createMovieRequestQueue(path);
+  const queue = createCinefileRequestQueue(path);
 
   await expect(queue.read()).resolves.toEqual([]);
-  await expect(readFile(path, 'utf8')).resolves.toBe('[]');
+  await expect(readFile(path, 'utf8')).resolves.toBe('{"schema":1,"requests":[]}');
 });
 
 test('adds complete request metadata once and removes it by TMDB ID', async () => {
-  const queue = createMovieRequestQueue(path);
-  const movie = {posterPath: '/arrival.jpg', title: 'Arrival', tmdbId: 329865, year: 2016};
+  const queue = createCinefileRequestQueue(path);
+  const movie = {
+    kind: 'movie' as const,
+    posterPath: '/arrival.jpg',
+    title: 'Arrival',
+    tmdbId: 329865,
+    year: 2016,
+  };
 
   const [first, duplicate] = await Promise.all([queue.add(movie), queue.add(movie)]);
 
@@ -41,15 +47,16 @@ test('adds complete request metadata once and removes it by TMDB ID', async () =
   expect(duplicate).toEqual(first);
   await expect(queue.read()).resolves.toEqual([first]);
 
-  await queue.remove(movie.tmdbId);
+  await queue.remove(movie.kind, movie.tmdbId);
 
   await expect(queue.read()).resolves.toEqual([]);
 });
 
 test('preserves a missing TMDB release year as null', async () => {
-  const queue = createMovieRequestQueue(path);
+  const queue = createCinefileRequestQueue(path);
 
   const request = await queue.add({
+    kind: 'movie',
     posterPath: null,
     title: 'Unreleased Movie',
     tmdbId: 123,
@@ -62,9 +69,21 @@ test('preserves a missing TMDB release year as null', async () => {
 });
 
 test('rejects an invalid saved request document', async () => {
-  const queue = createMovieRequestQueue(path);
+  const queue = createCinefileRequestQueue(path);
   await queue.read();
   await writeFile(path, '{not json');
 
-  await expect(queue.read()).rejects.toThrow('Movie requests contain invalid JSON.');
+  await expect(queue.read()).rejects.toThrow('Cinefile requests contain invalid JSON.');
+});
+
+test('allows a movie and TV series to share a TMDB ID', async () => {
+  const queue = createCinefileRequestQueue(path);
+
+  await queue.add({kind: 'movie', posterPath: null, title: 'Movie', tmdbId: 42, year: null});
+  await queue.add({kind: 'tvseries', posterPath: null, title: 'Series', tmdbId: 42, year: null});
+
+  await expect(queue.read()).resolves.toEqual([
+    expect.objectContaining({kind: 'movie', tmdbId: 42}),
+    expect.objectContaining({kind: 'tvseries', tmdbId: 42}),
+  ]);
 });

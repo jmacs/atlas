@@ -1,5 +1,5 @@
 import {formatDate} from '#lib/utils/dates.ts';
-import type {MovieRequest} from '#lib/cinefile/movie-requests.ts';
+import type {CinefileRequest} from '#lib/cinefile/requests.ts';
 import {ChevronRight} from '@lucide/icons';
 
 import {Icon} from '../../ui/Icon.tsx';
@@ -7,14 +7,14 @@ import {PageHeader} from '../../ui/Page.tsx';
 import {CinefileAdminLayout} from './CinefileAdminLayout.tsx';
 
 type MovieRequestsPageProps =
-  {status: 'error'} | {requests: readonly MovieRequest[]; status: 'ready'};
+  {status: 'error'} | {requests: readonly CinefileRequest[]; status: 'ready'};
 
 export function MovieRequestsPage(props: MovieRequestsPageProps) {
   return (
-    <CinefileAdminLayout activePath="/cinefile-admin/requests" title="Movie Requests">
+    <CinefileAdminLayout activePath="/cinefile-admin/requests" title="Media Requests">
       <PageHeader
-        title="Movie Requests"
-        description="Review every movie waiting to be added to the collection."
+        title="Media Requests"
+        description="Review every movie and TV series waiting to be added to the collection."
       />
       <MovieRequestList {...props} />
     </CinefileAdminLayout>
@@ -25,14 +25,14 @@ function MovieRequestList(props: MovieRequestsPageProps) {
   if (props.status === 'error') {
     return (
       <p class="type-body text-danger" role="alert">
-        Movie requests are unavailable. Please try again.
+        Media requests are unavailable. Please try again.
       </p>
     );
   }
   if (props.requests.length === 0) {
     return (
       <section class="rounded-card border border-border bg-surface px-6 py-12 text-center shadow-sm">
-        <h2 class="type-heading-2 text-foreground">No movie requests</h2>
+        <h2 class="type-heading-2 text-foreground">No media requests</h2>
         <p class="type-body mt-2 text-muted">New Cinefile requests will appear here.</p>
       </section>
     );
@@ -55,6 +55,10 @@ function MovieRequestList(props: MovieRequestsPageProps) {
               </>
             )}
             <span>TMDB {request.tmdbId}</span>
+            <span class="mx-2" aria-hidden="true">
+              ·
+            </span>
+            <span>{request.kind === 'movie' ? 'Movie' : 'TV series'}</span>
           </p>
         </div>
         <time class="type-body-small shrink-0 text-muted" dateTime={request.requestedAt}>
@@ -65,7 +69,7 @@ function MovieRequestList(props: MovieRequestsPageProps) {
     </li>
   ));
   return (
-    <section aria-label="Movie requests">
+    <section aria-label="Media requests">
       <div class="mb-4 flex items-baseline justify-between gap-4">
         <h2 class="type-heading-2">Requests</h2>
         <p class="type-caption text-muted">

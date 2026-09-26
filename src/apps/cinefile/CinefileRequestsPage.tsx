@@ -16,7 +16,7 @@ export function CinefileRequestsPage({movies, status}: CinefileRequestsPageProps
     <CinefileLayout title="Your requests">
       <PageHeader
         title="Your requests"
-        description="Movies you have asked to add to your collection."
+        description="Movies and TV series you have asked to add to your collection."
       />
       <RequestsContent movies={movies} status={status} />
     </CinefileLayout>
@@ -36,7 +36,7 @@ function RequestsContent({movies, status}: RequestsContentProps) {
       <section class="mt-6 grid min-h-56 place-items-center rounded-card border border-border bg-surface px-6 py-10 text-center shadow-sm">
         <div>
           <h2 class="type-heading-2 text-foreground">Your request queue is empty</h2>
-          <p class="type-body mt-2 text-muted">Search TMDB to find a movie to add.</p>
+          <p class="type-body mt-2 text-muted">Search TMDB to find a title to add.</p>
           <a class={buttonClassNames('primary', 'md', 'mt-6')} href="/cinefile/tmdb-search">
             <Icon icon={Search} size={18} aria-hidden="true" />
             Search TMDB

@@ -1,13 +1,17 @@
 import {beforeEach, expect, test, vi} from 'vitest';
 
 const getMovieDbMovie = vi.hoisted(() => vi.fn());
+const getMovieDbTv = vi.hoisted(() => vi.fn());
 const logger = vi.hoisted(() => ({error: vi.fn()}));
 const movieRequests = vi.hoisted(() => ({read: vi.fn()}));
+const migrateCinefileRequests = vi.hoisted(() => vi.fn());
 
-vi.mock('#lib/cinefile/movie-requests.ts', () => ({
-  createMovieRequestQueue: () => movieRequests,
+vi.mock('#lib/cinefile/requests.ts', () => ({
+  createCinefileRequestQueue: () => movieRequests,
 }));
+vi.mock('#lib/cinefile/migrate.ts', () => ({migrateCinefileRequests}));
 vi.mock('#lib/movie-db/movie-details.ts', () => ({getMovieDbMovie}));
+vi.mock('#lib/movie-db/tv-details.ts', () => ({getMovieDbTv}));
 vi.mock('../../system/logger.ts', () => ({logger}));
 
 import {cinefileAdminApp} from './app.tsx';
@@ -15,6 +19,7 @@ import {cinefileAdminApp} from './app.tsx';
 const requests = [
   {
     id: 'request-older',
+    kind: 'movie',
     posterPath: '/older.jpg',
     requestedAt: '2026-09-18T12:00:00.000Z',
     title: 'Older Movie',
@@ -23,6 +28,7 @@ const requests = [
   },
   {
     id: 'request-newer',
+    kind: 'movie',
     posterPath: '/arrival.jpg',
     requestedAt: '2026-09-19T12:00:00.000Z',
     title: 'Arrival',
@@ -46,16 +52,46 @@ beforeEach(() => {
     runtimeMinutes: 116,
     tagline: 'Why are they here?',
   });
+  getMovieDbTv.mockResolvedValue({
+    id: 1399,
+    title: 'Game of Thrones',
+    year: 2011,
+    posterPath: '/got.jpg',
+    backdropPath: '/got-backdrop.jpg',
+    genres: ['Drama'],
+    rating: 8.5,
+    episodeRuntimeMinutes: 60,
+    numberOfEpisodes: 73,
+    numberOfSeasons: 8,
+  });
+  migrateCinefileRequests.mockResolvedValue({status: 'up-to-date'});
 });
 
-test('renders the standard home page with movie request navigation', async () => {
+test('renders the standard home page with media request navigation', async () => {
   const response = await cinefileAdminApp.app.request('/');
   const document = await response.text();
 
   expect(response.status).toBe(200);
   expect(document).toContain('Cinefile Admin');
-  expect(document).toContain('Movie Requests');
+  expect(document).toContain('Media Requests');
   expect(document).toContain('href="/cinefile-admin/requests"');
+  expect(document).toContain('Upgrade request schema');
+});
+
+test('runs the Cinefile request migration from the admin page', async () => {
+  migrateCinefileRequests.mockResolvedValue({
+    backupPath: '/data/requests.json.backup',
+    migratedRequests: 2,
+    status: 'migrated',
+  });
+
+  const response = await cinefileAdminApp.app.request('/migrate', {method: 'POST'});
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(migrateCinefileRequests).toHaveBeenCalledOnce();
+  expect(document).toContain('Upgraded 2 requests.');
+  expect(document).toContain('/data/requests.json.backup');
 });
 
 test('lists every request newest first and links to request details', async () => {
@@ -94,6 +130,30 @@ test('returns not found for an unknown request', async () => {
   expect(getMovieDbMovie).not.toHaveBeenCalled();
 });
 
+test('loads TV details for a TV series request', async () => {
+  movieRequests.read.mockResolvedValue([
+    {
+      id: 'request-tv',
+      kind: 'tvseries',
+      posterPath: '/got.jpg',
+      requestedAt: '2026-09-19T12:00:00.000Z',
+      title: 'Game of Thrones',
+      tmdbId: 1399,
+      year: 2011,
+    },
+  ]);
+
+  const response = await cinefileAdminApp.app.request('/requests/request-tv');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(getMovieDbTv).toHaveBeenCalledWith(1399);
+  expect(getMovieDbMovie).not.toHaveBeenCalled();
+  expect(document).toContain('TV series');
+  expect(document).toContain('8 seasons');
+  expect(document).toContain('1h per episode');
+});
+
 test('falls back to saved request data when TMDB is unavailable', async () => {
   const error = new Error('TMDB unavailable');
   getMovieDbMovie.mockRejectedValue(error);
@@ -102,11 +162,11 @@ test('falls back to saved request data when TMDB is unavailable', async () => {
   const document = await response.text();
 
   expect(response.status).toBe(502);
-  expect(document).toContain('TMDB movie details are unavailable.');
+  expect(document).toContain('TMDB details are unavailable.');
   expect(document).toContain('Arrival');
   expect(document).toContain('https://image.tmdb.org/t/p/w500/arrival.jpg');
   expect(logger.error).toHaveBeenCalledWith(
-    {err: error, movieId: 329865, requestId: 'request-newer'},
-    'Loading Cinefile Admin TMDB movie details failed',
+    {err: error, requestId: 'request-newer', tmdbId: 329865},
+    'Loading Cinefile Admin TMDB details failed',
   );
 });

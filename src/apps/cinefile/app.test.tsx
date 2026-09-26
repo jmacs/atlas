@@ -2,12 +2,14 @@ import {beforeEach, expect, test, vi} from 'vitest';
 
 const catalogStore = vi.hoisted(() => ({read: vi.fn()}));
 const getMovieDbMovie = vi.hoisted(() => vi.fn());
+const getMovieDbTv = vi.hoisted(() => vi.fn());
 const logger = vi.hoisted(() => ({error: vi.fn()}));
 const movieRequests = vi.hoisted(() => ({add: vi.fn(), read: vi.fn(), remove: vi.fn()}));
 const searchMovieDb = vi.hoisted(() => vi.fn());
+const searchMovieDbTv = vi.hoisted(() => vi.fn());
 
-vi.mock('#lib/cinefile/movie-requests.ts', () => ({
-  createMovieRequestQueue: () => movieRequests,
+vi.mock('#lib/cinefile/requests.ts', () => ({
+  createCinefileRequestQueue: () => movieRequests,
 }));
 
 vi.mock('#lib/jellyfin/catalog.ts', () => ({
@@ -20,6 +22,8 @@ vi.mock('#lib/config.ts', () => ({
 
 vi.mock('#lib/movie-db/movie-details.ts', () => ({getMovieDbMovie}));
 vi.mock('#lib/movie-db/movie-search.ts', () => ({searchMovieDb}));
+vi.mock('#lib/movie-db/tv-details.ts', () => ({getMovieDbTv}));
+vi.mock('#lib/movie-db/tv-search.ts', () => ({searchMovieDbTv}));
 vi.mock('../../system/logger.ts', () => ({logger}));
 
 import {cinefileApp} from './app.tsx';
@@ -48,8 +52,23 @@ beforeEach(() => {
     runtimeMinutes: 116,
     tagline: 'Why are they here?',
   });
+  getMovieDbTv.mockResolvedValue({
+    id: 1399,
+    title: 'Game of Thrones',
+    year: 2011,
+    posterPath: '/got.jpg',
+    backdropPath: '/got-backdrop.jpg',
+    genres: ['Drama', 'Sci-Fi & Fantasy'],
+    overview: 'Nine noble families fight for control of the lands of Westeros.',
+    rating: 8.5,
+    episodeRuntimeMinutes: 60,
+    numberOfEpisodes: 73,
+    numberOfSeasons: 8,
+    tagline: 'Winter is coming.',
+  });
   movieRequests.add.mockResolvedValue({
     id: 'request-1',
+    kind: 'movie',
     posterPath: '/arrival.jpg',
     title: 'Arrival',
     tmdbId: 329865,
@@ -121,6 +140,7 @@ test('lists movie requests newest first and links each tile to its movie page', 
   movieRequests.read.mockResolvedValue([
     {
       id: 'request-older',
+      kind: 'movie',
       posterPath: '/earlier.jpg',
       requestedAt: '2026-09-18T12:00:00.000Z',
       title: 'Earlier Movie',
@@ -129,6 +149,7 @@ test('lists movie requests newest first and links each tile to its movie page', 
     },
     {
       id: 'request-newer',
+      kind: 'movie',
       posterPath: '/later.jpg',
       requestedAt: '2026-09-19T12:00:00.000Z',
       title: 'Later Movie',
@@ -155,8 +176,28 @@ test('shows an empty state when there are no movie requests', async () => {
 
   expect(response.status).toBe(200);
   expect(document).toContain('Your request queue is empty');
-  expect(document).toContain('Search TMDB to find a movie to add.');
+  expect(document).toContain('Search TMDB to find a title to add.');
   expect(document).toContain('href="/cinefile/tmdb-search"');
+});
+
+test('links TV series requests to their TV detail page', async () => {
+  movieRequests.read.mockResolvedValue([
+    {
+      id: 'request-tv',
+      kind: 'tvseries',
+      posterPath: '/got.jpg',
+      requestedAt: '2026-09-19T12:00:00.000Z',
+      title: 'Game of Thrones',
+      tmdbId: 1399,
+      year: 2011,
+    },
+  ]);
+
+  const response = await cinefileApp.app.request('/requests');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(document).toContain('href="/cinefile/tvseries/tmdb/1399"');
 });
 
 test('renders Movie DB results as tiles', async () => {
@@ -286,7 +327,7 @@ test('offers a primary get action for a movie missing from the catalog', async (
 
 test('offers a danger action when the movie is already requested', async () => {
   movieRequests.read.mockResolvedValue([
-    {id: 'request-1', title: 'Arrival', tmdbId: 329865, year: 2016},
+    {id: 'request-1', kind: 'movie', title: 'Arrival', tmdbId: 329865, year: 2016},
   ]);
 
   const response = await cinefileApp.app.request('/movies/tmdb/329865');
@@ -297,11 +338,64 @@ test('offers a danger action when the movie is already requested', async () => {
   expect(document).toContain('bg-danger');
 });
 
+test('searches TMDB for TV series and preserves the selected title type', async () => {
+  searchMovieDbTv.mockResolvedValue([
+    {id: 1399, title: 'Game of Thrones', year: 2011, posterPath: '/got.jpg'},
+  ]);
+
+  const response = await cinefileApp.app.request(
+    '/tmdb-search/results?kind=tvseries&q=Game%20of%20Thrones',
+  );
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(searchMovieDbTv).toHaveBeenCalledWith('Game of Thrones');
+  expect(searchMovieDb).not.toHaveBeenCalled();
+  expect(document).toContain('value="tvseries" selected');
+  expect(document).toContain('/cinefile/tvseries/tmdb/1399');
+  expect(document).toContain('https://image.tmdb.org/t/p/w342/got.jpg');
+});
+
+test('renders TV series details and offers a request action', async () => {
+  const response = await cinefileApp.app.request('/tvseries/tmdb/1399');
+  const document = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(getMovieDbTv).toHaveBeenCalledWith(1399);
+  expect(document).toContain('Game of Thrones</h1>');
+  expect(document).toContain('8 seasons');
+  expect(document).toContain('73 episodes');
+  expect(document).toContain('1h per episode');
+  expect(document).toContain('Get this TV series');
+  expect(document).toContain('hx-post="/cinefile/tvseries/tmdb/1399/request"');
+});
+
+test('adds and removes a TV series request with its kind', async () => {
+  const addResponse = await cinefileApp.app.request('/tvseries/tmdb/1399/request', {
+    method: 'POST',
+  });
+  const removeResponse = await cinefileApp.app.request('/tvseries/tmdb/1399/request', {
+    method: 'DELETE',
+  });
+
+  expect(movieRequests.add).toHaveBeenCalledWith({
+    kind: 'tvseries',
+    posterPath: '/got.jpg',
+    title: 'Game of Thrones',
+    tmdbId: 1399,
+    year: 2011,
+  });
+  expect(movieRequests.remove).toHaveBeenCalledWith('tvseries', 1399);
+  await expect(addResponse.text()).resolves.toContain('Game of Thrones was added');
+  await expect(removeResponse.text()).resolves.toContain('TV series was removed');
+});
+
 test('adds a movie request and swaps in the remove action', async () => {
   const response = await cinefileApp.app.request('/movies/tmdb/329865/request', {method: 'POST'});
   const document = await response.text();
 
   expect(movieRequests.add).toHaveBeenCalledWith({
+    kind: 'movie',
     posterPath: '/arrival.jpg',
     title: 'Arrival',
     tmdbId: 329865,
@@ -318,7 +412,7 @@ test('removes a movie request and swaps in the get action', async () => {
   });
   const document = await response.text();
 
-  expect(movieRequests.remove).toHaveBeenCalledWith(329865);
+  expect(movieRequests.remove).toHaveBeenCalledWith('movie', 329865);
   expect(document).toContain('Get this movie');
   expect(document).toContain('The movie was removed from the request queue.');
 });

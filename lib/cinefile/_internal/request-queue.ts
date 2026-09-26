@@ -4,8 +4,11 @@ import {dirname, join} from 'node:path';
 
 import {CONFIG} from '#lib/config.ts';
 
-export type MovieRequest = {
+export type RequestKind = 'movie' | 'tvseries';
+
+export type CinefileRequest = {
   id: string;
+  kind: RequestKind;
   posterPath: string | null;
   requestedAt: string;
   title: string;
@@ -13,15 +16,22 @@ export type MovieRequest = {
   year: number | null;
 };
 
-export type NewMovieRequest = Omit<MovieRequest, 'id' | 'requestedAt'>;
+export type NewCinefileRequest = Omit<CinefileRequest, 'id' | 'requestedAt'>;
 
-export type MovieRequestQueue = {
-  add(movie: NewMovieRequest): Promise<MovieRequest>;
-  read(): Promise<MovieRequest[]>;
-  remove(tmdbId: number): Promise<void>;
+export type CinefileRequestQueue = {
+  add(request: NewCinefileRequest): Promise<CinefileRequest>;
+  read(): Promise<CinefileRequest[]>;
+  remove(kind: RequestKind, tmdbId: number): Promise<void>;
 };
 
-export function createMovieRequestQueue(path = CONFIG.paths.cinefileRequests): MovieRequestQueue {
+type RequestDocument = {
+  requests: CinefileRequest[];
+  schema: 1;
+};
+
+export function createCinefileRequestQueue(
+  path = CONFIG.paths.cinefileRequests,
+): CinefileRequestQueue {
   let pending: Promise<unknown> = Promise.resolve();
 
   function serialized<T>(operation: () => Promise<T>): Promise<T> {
@@ -34,15 +44,21 @@ export function createMovieRequestQueue(path = CONFIG.paths.cinefileRequests): M
   }
 
   return {
-    add(movie) {
+    add(newRequest) {
       return serialized(async () => {
-        validateNewMovieRequest(movie);
+        validateNewRequest(newRequest);
         const requests = await readOrCreate(path);
-        const existing = requests.find(({tmdbId}) => tmdbId === movie.tmdbId);
+        const existing = requests.find(
+          ({kind, tmdbId}) => kind === newRequest.kind && tmdbId === newRequest.tmdbId,
+        );
         if (existing) {
           return existing;
         }
-        const request = {id: randomUUID(), requestedAt: new Date().toISOString(), ...movie};
+        const request = {
+          id: randomUUID(),
+          requestedAt: new Date().toISOString(),
+          ...newRequest,
+        };
         await replace(path, [...requests, request]);
         return request;
       });
@@ -50,11 +66,14 @@ export function createMovieRequestQueue(path = CONFIG.paths.cinefileRequests): M
     read() {
       return serialized(() => readOrCreate(path));
     },
-    remove(tmdbId) {
+    remove(kind, tmdbId) {
       return serialized(async () => {
+        validateKind(kind);
         validateTmdbId(tmdbId);
         const requests = await readOrCreate(path);
-        const remaining = requests.filter((request) => request.tmdbId !== tmdbId);
+        const remaining = requests.filter(
+          (request) => request.kind !== kind || request.tmdbId !== tmdbId,
+        );
         if (remaining.length !== requests.length) {
           await replace(path, remaining);
         }
@@ -63,7 +82,7 @@ export function createMovieRequestQueue(path = CONFIG.paths.cinefileRequests): M
   };
 }
 
-async function readOrCreate(path: string): Promise<MovieRequest[]> {
+async function readOrCreate(path: string): Promise<CinefileRequest[]> {
   let serialized: string;
   try {
     serialized = await readFile(path, 'utf8');
@@ -73,7 +92,10 @@ async function readOrCreate(path: string): Promise<MovieRequest[]> {
     }
     await mkdir(dirname(path), {recursive: true});
     try {
-      await writeFile(path, '[]', {encoding: 'utf8', flag: 'wx'});
+      await writeFile(path, JSON.stringify({schema: 1, requests: []}), {
+        encoding: 'utf8',
+        flag: 'wx',
+      });
       return [];
     } catch (createError) {
       if (!isAlreadyExists(createError)) {
@@ -87,17 +109,21 @@ async function readOrCreate(path: string): Promise<MovieRequest[]> {
   try {
     value = JSON.parse(serialized);
   } catch (error) {
-    throw new Error('Movie requests contain invalid JSON.', {cause: error});
+    throw new Error('Cinefile requests contain invalid JSON.', {cause: error});
   }
-  return validateMovieRequests(value);
+  return validateRequestDocument(value).requests;
 }
 
-async function replace(path: string, requests: readonly MovieRequest[]): Promise<void> {
+async function replace(path: string, requests: readonly CinefileRequest[]): Promise<void> {
   const directory = dirname(path);
   const temporaryPath = join(directory, `.${randomUUID()}.requests.json`);
   await mkdir(directory, {recursive: true});
+  const document: RequestDocument = {schema: 1, requests: [...requests]};
   try {
-    await writeFile(temporaryPath, JSON.stringify(requests), {encoding: 'utf8', flag: 'wx'});
+    await writeFile(temporaryPath, JSON.stringify(document, null, 2), {
+      encoding: 'utf8',
+      flag: 'wx',
+    });
     await rename(temporaryPath, path);
   } catch (error) {
     await unlink(temporaryPath).catch(() => undefined);
@@ -105,14 +131,14 @@ async function replace(path: string, requests: readonly MovieRequest[]): Promise
   }
 }
 
-function validateMovieRequests(value: unknown): MovieRequest[] {
-  if (!Array.isArray(value)) {
-    throw new Error('Movie requests must be an array.');
+function validateRequestDocument(value: unknown): RequestDocument {
+  if (!isRecord(value) || value.schema !== 1 || !Array.isArray(value.requests)) {
+    throw new Error('Cinefile requests must use schema 1. Run the Cinefile migration.');
   }
   const ids = new Set<string>();
-  const tmdbIds = new Set<number>();
-  for (const [index, request] of value.entries()) {
-    const label = `Movie request at index ${index}`;
+  const mediaIds = new Set<string>();
+  for (const [index, request] of value.requests.entries()) {
+    const label = `Cinefile request at index ${index}`;
     if (!isRecord(request)) {
       throw new Error(`${label} must be an object.`);
     }
@@ -123,39 +149,48 @@ function validateMovieRequests(value: unknown): MovieRequest[] {
       throw new Error(`${label} must have a valid request timestamp.`);
     }
     if (ids.has(request.id)) {
-      throw new Error('Movie request IDs must be unique.');
+      throw new Error('Cinefile request IDs must be unique.');
     }
-    validateNewMovieRequest({
+    validateNewRequest({
+      kind: request.kind as RequestKind,
       posterPath: request.posterPath as string | null,
       title: request.title as string,
       tmdbId: request.tmdbId as number,
       year: request.year as number | null,
     });
-    if (tmdbIds.has(request.tmdbId as number)) {
-      throw new Error('A movie can only appear in the request queue once.');
+    const mediaId = `${request.kind}:${request.tmdbId}`;
+    if (mediaIds.has(mediaId)) {
+      throw new Error('A title can only appear in the request queue once.');
     }
     ids.add(request.id);
-    tmdbIds.add(request.tmdbId as number);
+    mediaIds.add(mediaId);
   }
-  return value as MovieRequest[];
+  return value as RequestDocument;
 }
 
-function validateNewMovieRequest(movie: NewMovieRequest): void {
-  if (movie.posterPath !== null && typeof movie.posterPath !== 'string') {
-    throw new Error('A movie request poster path must be a string or null.');
+function validateNewRequest(request: NewCinefileRequest): void {
+  validateKind(request.kind);
+  if (request.posterPath !== null && typeof request.posterPath !== 'string') {
+    throw new Error('A request poster path must be a string or null.');
   }
-  if (typeof movie.title !== 'string' || !movie.title.trim()) {
-    throw new Error('A movie request must have a title.');
+  if (typeof request.title !== 'string' || !request.title.trim()) {
+    throw new Error('A request must have a title.');
   }
-  validateTmdbId(movie.tmdbId);
-  if (movie.year !== null && (!Number.isSafeInteger(movie.year) || movie.year <= 0)) {
-    throw new Error('A movie request year must be a positive integer or null.');
+  validateTmdbId(request.tmdbId);
+  if (request.year !== null && (!Number.isSafeInteger(request.year) || request.year <= 0)) {
+    throw new Error('A request year must be a positive integer or null.');
+  }
+}
+
+function validateKind(kind: RequestKind): void {
+  if (kind !== 'movie' && kind !== 'tvseries') {
+    throw new Error('A request kind must be movie or tvseries.');
   }
 }
 
 function validateTmdbId(tmdbId: number): void {
   if (!Number.isSafeInteger(tmdbId) || tmdbId <= 0) {
-    throw new Error('A movie request must have a valid TMDB ID.');
+    throw new Error('A request must have a valid TMDB ID.');
   }
 }
 

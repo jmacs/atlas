@@ -70,13 +70,13 @@ export const navigation: readonly AppNavigationItem[] = [
     href: '/cinefile-admin',
     label: 'Cinefile Admin',
     icon: Clapperboard,
-    description: 'Review and action movie requests from Cinefile.',
+    description: 'Review and action media requests from Cinefile.',
     children: [
       {
         href: '/cinefile-admin/requests',
-        label: 'Movie Requests',
+        label: 'Media Requests',
         icon: ListRestart,
-        description: 'Review the movies waiting to be added to the collection.',
+        description: 'Review movies and TV series waiting to be added to the collection.',
       },
     ],
   },

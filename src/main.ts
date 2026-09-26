@@ -4,6 +4,7 @@ import {createActionSubmitter} from '#lib/actions/submission.ts';
 import {sqlite} from '#lib/database/client.ts';
 import {migrateDatabase} from '#lib/database/migrate.ts';
 import {CONFIG} from '#lib/config.ts';
+import {migrateCinefileRequests} from '#lib/cinefile/migrate.ts';
 import {createHost} from './system/host.tsx';
 import {logger} from './system/logger.ts';
 import {apps} from './apps/index.ts';
@@ -12,6 +13,13 @@ import {staticPaths} from './web.config.ts';
 logger.info('Application started');
 
 migrateDatabase(sqlite);
+const cinefileMigration = await migrateCinefileRequests();
+if (cinefileMigration.status === 'migrated') {
+  logger.info(
+    {backupPath: cinefileMigration.backupPath},
+    `Migrated ${cinefileMigration.migratedRequests} Cinefile requests`,
+  );
+}
 
 const scheduler = createActionScheduler({
   pollIntervalMs: CONFIG.ACTION_POLL_INTERVAL_MS,
