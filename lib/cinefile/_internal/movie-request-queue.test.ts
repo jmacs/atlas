@@ -65,7 +65,8 @@ test('preserves a missing TMDB release year as null', async () => {
 
   expect(request.year).toBeNull();
   expect(request.posterPath).toBeNull();
-  await expect(readFile(path, 'utf8')).resolves.toContain('"year":null');
+  const document = JSON.parse(await readFile(path, 'utf8')) as {requests: Array<{year: unknown}>};
+  expect(document.requests[0]?.year).toBeNull();
 });
 
 test('rejects an invalid saved request document', async () => {
